@@ -265,21 +265,23 @@
   function onLeadsUpdate(fn) { leadsListeners.push(fn); }
   function notifyLeads() { leadsListeners.forEach(function (fn) { try { fn(); } catch (e) {} }); }
 
-  function leadsFor(profileId) {
-    if (!profileId) return [];
-    if (!leadsCache[profileId] && !leadsLoading[profileId]) refreshLeads(profileId);
-    return leadsCache[profileId] || [];
+  /** scope = id de profil, ou '*' pour tous les profils accessibles (RLS s'occupe du filtrage). */
+  function leadsFor(scope) {
+    if (!scope) return [];
+    if (!leadsCache[scope] && !leadsLoading[scope]) refreshLeads(scope);
+    return leadsCache[scope] || [];
   }
 
-  function refreshLeads(profileId) {
-    leadsLoading[profileId] = true;
-    return sb().from('leads').select('*').eq('profile_id', profileId).order('created_at', { ascending: false })
-      .then(function (res) {
-        leadsLoading[profileId] = false;
-        if (res.error) { console.warn(res.error); return; }
-        leadsCache[profileId] = res.data || [];
-        notifyLeads();
-      });
+  function refreshLeads(scope) {
+    leadsLoading[scope] = true;
+    var q = sb().from('leads').select('*, profiles(name, slug)').order('created_at', { ascending: false });
+    if (scope !== '*') q = q.eq('profile_id', scope);
+    return q.then(function (res) {
+      leadsLoading[scope] = false;
+      if (res.error) { console.warn(res.error); return; }
+      leadsCache[scope] = res.data || [];
+      notifyLeads();
+    });
   }
 
   function addLead(profileId, lead) {
@@ -295,14 +297,14 @@
     }).then(function (res) { if (res.error) throw res.error; });
   }
 
-  function markLeadRead(leadId, profileId, isRead) {
+  function markLeadRead(leadId, scope, isRead) {
     return sb().from('leads').update({ is_read: isRead }).eq('id', leadId)
-      .then(function (res) { if (res.error) throw res.error; return refreshLeads(profileId); });
+      .then(function (res) { if (res.error) throw res.error; leadsCache = {}; return refreshLeads(scope); });
   }
 
-  function deleteLead(leadId, profileId) {
+  function deleteLead(leadId, scope) {
     return sb().from('leads').delete().eq('id', leadId)
-      .then(function (res) { if (res.error) throw res.error; return refreshLeads(profileId); });
+      .then(function (res) { if (res.error) throw res.error; leadsCache = {}; return refreshLeads(scope); });
   }
 
   global.Store = {

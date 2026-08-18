@@ -575,13 +575,24 @@
   /* ============================================================
      Onglet CONTACTS (leads du formulaire public)
      ============================================================ */
+  var LEADS_SCOPE = '*';
+
   function tabLeads() {
-    var leads = window.Store.leadsFor(P().id);
+    var scopePicker = '<div class="field" style="max-width:320px;margin-bottom:18px">' +
+      '<label for="leadsScope">Profil</label><select class="select" id="leadsScope">' +
+        '<option value="*"' + (LEADS_SCOPE === '*' ? ' selected' : '') + '>Tous les profils</option>' +
+        Object.keys(D.profiles).map(function (k) {
+          var p = D.profiles[k];
+          return '<option value="' + esc(p.id) + '"' + (LEADS_SCOPE === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>';
+        }).join('') +
+      '</select></div>';
+
+    var leads = window.Store.leadsFor(LEADS_SCOPE);
     if (!leads.length) {
-      return '<div class="empty"><p>Aucun message reçu pour l’instant.</p>' +
+      return scopePicker + '<div class="empty"><p>Aucun message reçu pour l’instant.</p>' +
         '<p class="hint" style="margin-top:6px">Les demandes envoyées via le formulaire de contact de la page publique apparaîtront ici.</p></div>';
     }
-    return '<div class="rows" id="leadRows">' + leads.map(leadRowHtml).join('') + '</div>';
+    return scopePicker + '<div class="rows" id="leadRows">' + leads.map(leadRowHtml).join('') + '</div>';
   }
 
   var TX_LABELS = { achat: 'Achat', vente: 'Vente', location: 'Location' };
@@ -592,10 +603,11 @@
     var meta = [l.email, l.phone].filter(Boolean).join(' · ') + ' · ' + date;
     var tx = l.transaction_type && TX_LABELS[l.transaction_type]
       ? '<span class="tag-mini">' + TX_LABELS[l.transaction_type] + '</span>' : '';
+    var client = (LEADS_SCOPE === '*' && l.profiles) ? '<span class="tag-mini">' + esc(l.profiles.name) + '</span>' : '';
     return '<div class="row" data-id="' + esc(l.id) + '" style="align-items:flex-start">' +
       '<span class="row-ico">' + ico('mail', 20) + '</span>' +
       '<span class="row-body">' +
-        '<span class="row-title">' + esc(name) + tx + (l.is_read ? '' : '<span class="tag-mini ok">Nouveau</span>') + '</span>' +
+        '<span class="row-title">' + esc(name) + tx + client + (l.is_read ? '' : '<span class="tag-mini ok">Nouveau</span>') + '</span>' +
         '<span class="row-url">' + esc(meta) + '</span>' +
         '<p class="t-body" style="margin-top:6px;white-space:pre-wrap">' + esc(l.message || '') + '</p>' +
       '</span>' +
@@ -606,26 +618,28 @@
   }
 
   function wireLeads() {
+    var scope = $('#leadsScope');
+    if (scope) scope.addEventListener('change', function () { LEADS_SCOPE = scope.value; render(); });
+
     var host = $('#leadRows'); if (!host) return;
     host.addEventListener('click', function (e) {
       var row = e.target.closest('.row'); if (!row) return;
       var id = row.getAttribute('data-id');
-      var lead = window.Store.leadsFor(P().id).filter(function (x) { return x.id === id; })[0];
+      var lead = window.Store.leadsFor(LEADS_SCOPE).filter(function (x) { return x.id === id; })[0];
       if (!lead) return;
       if (e.target.closest('[data-act="read"]')) {
-        window.Store.markLeadRead(lead.id, P().id, !lead.is_read).then(function () { render(); });
+        window.Store.markLeadRead(lead.id, LEADS_SCOPE, !lead.is_read).then(function () { render(); });
       } else if (e.target.closest('[data-act="del"]')) {
         confirmBox('Supprimer', 'Ce message sera définitivement supprimé.', function () {
-          window.Store.deleteLead(lead.id, P().id).then(function () { render(); toast('Message supprimé'); });
+          window.Store.deleteLead(lead.id, LEADS_SCOPE).then(function () { render(); toast('Message supprimé'); });
         }, true);
       }
     });
   }
 
   function paintLeadsBadge() {
-    var p = P(); var n = $('#leadsCount'); if (!n) return;
-    if (!p) { n.textContent = ''; return; }
-    var count = window.Store.leadsFor(p.id).filter(function (l) { return !l.is_read; }).length;
+    var n = $('#leadsCount'); if (!n) return;
+    var count = window.Store.leadsFor('*').filter(function (l) { return !l.is_read; }).length;
     n.textContent = count || '';
   }
 

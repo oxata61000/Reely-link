@@ -180,6 +180,7 @@ body.profile {
 .p-contact-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s var(--ease); }
 .p-contact-card.is-open .p-contact-panel { grid-template-rows: 1fr; }
 .p-contact-panel > div { overflow: hidden; }
+.p-hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
 .p-form { display: flex; flex-direction: column; gap: 14px; padding: 0 20px 22px; }
 .p-form-row { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 520px) { .p-form-row { grid-template-columns: 1fr 1fr; } }

@@ -200,6 +200,7 @@
       '</button>' +
       '<div class="p-contact-panel" id="contactPanel">' +
         '<div><form class="p-form" id="contactForm" novalidate>' +
+          '<div class="p-hp" aria-hidden="true"><label for="cf-company">Société</label><input id="cf-company" name="company" tabindex="-1" autocomplete="off"></div>' +
           '<div class="p-form-row">' +
             '<div class="field"><label for="cf-first">Prénom</label><input class="input" id="cf-first" name="firstName" required placeholder="Camille"></div>' +
             '<div class="field"><label for="cf-last">Nom</label><input class="input" id="cf-last" name="lastName" required placeholder="Dupont"></div>' +
@@ -227,10 +228,7 @@
     var bits = [];
     if (c.email) bits.push('<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>');
     if (c.phone) bits.push('<a href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>');
-    return '<footer class="p-foot">' +
-      (bits.length ? '<p class="t-label">' + bits.join(' · ') + '</p>' : '') +
-      '<p class="t-label-sm muted">Propulsé par <strong>Reely Links</strong></p>' +
-    '</footer>';
+    return bits.length ? '<footer class="p-foot"><p class="t-label">' + bits.join(' · ') + '</p></footer>' : '';
   }
 
   function renderDock() {
@@ -358,12 +356,16 @@
     }
   });
 
+  var contactOpenedAt = 0;
   function openContact(open) {
     var card = document.getElementById('contactCard'); if (!card) return;
     card.classList.toggle('is-open', open);
     var trigger = card.querySelector('.p-contact-trigger');
     trigger.setAttribute('aria-expanded', String(open));
-    if (open) setTimeout(function () { var f = document.getElementById('cf-first'); if (f) f.focus(); }, 350);
+    if (open) {
+      contactOpenedAt = Date.now();
+      setTimeout(function () { var f = document.getElementById('cf-first'); if (f) f.focus(); }, 350);
+    }
   }
 
   root.addEventListener('submit', function (e) {
@@ -375,6 +377,11 @@
     if (!fd.get('firstName') || !fd.get('lastName') || !fd.get('email') || !fd.get('message')) {
       status.textContent = 'Merci de remplir tous les champs obligatoires.'; status.style.color = 'var(--error)'; return;
     }
+    // Anti-spam silencieux : champ piège rempli, ou envoi trop rapide après ouverture du formulaire.
+    if (fd.get('company') || (contactOpenedAt && Date.now() - contactOpenedAt < 2500)) {
+      form.reset(); status.textContent = 'Message envoyé, merci !'; status.style.color = 'var(--success)';
+      return;
+    }
     var lead = {
       firstName: fd.get('firstName'), lastName: fd.get('lastName'),
       email: fd.get('email'), phone: fd.get('phone') || '',
@@ -385,7 +392,10 @@
       form.reset(); status.textContent = 'Message envoyé, merci !'; status.style.color = 'var(--success)';
       var endpoint = (P.contact && P.contact.endpoint) || '';
       if (endpoint) fetch(endpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } }).catch(function () {});
-    }).catch(function () {
+    }).catch(function (err) {
+      if (err && /trop de messages/i.test(err.message || '')) {
+        status.textContent = err.message; status.style.color = 'var(--error)'; return;
+      }
       var body = 'De : ' + lead.firstName + ' ' + lead.lastName + ' <' + lead.email + '>' +
         (lead.phone ? '\nTéléphone : ' + lead.phone : '') + (lead.transactionType ? '\nType : ' + lead.transactionType : '') +
         '\n\n' + lead.message;
