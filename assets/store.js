@@ -66,7 +66,7 @@
       tags: [],
       theme: defaultTheme('indigo'),
       seo: { title: '', description: '', image: '' },
-      contact: { email: '', phone: '', showForm: false, endpoint: '' },
+      contact: { email: '', phone: '', showForm: false, showEmail: true, showPhone: true, endpoint: '' },
       analytics: { plausible: '', ga4: '', metaPixel: '' },
       socials: [],
       inviteEmail: '',

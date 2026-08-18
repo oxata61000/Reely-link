@@ -708,6 +708,10 @@
         '<div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" value="' + esc(c.email || '') + '"></div>' +
         '<div class="field"><label for="s-phone">Téléphone</label><input class="input" id="s-phone" value="' + esc(c.phone || '') + '"></div>' +
       '</div>' +
+      '<div class="row-toggle"><div><p>Afficher l’email en pied de page</p><small>Visible publiquement sur la page, en plus de servir aux notifications.</small></div>' +
+        '<label class="switch"><input type="checkbox" id="s-showEmail"' + (c.showEmail !== false ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="row-toggle"><div><p>Afficher le téléphone en pied de page</p><small>Décochez pour le garder privé (utilisable quand même en interne).</small></div>' +
+        '<label class="switch"><input type="checkbox" id="s-showPhone"' + (c.showPhone !== false ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row-toggle"><div><p>Afficher le formulaire de contact</p><small>Vignette « Nous contacter » en bas de page, qui se déplie au clic. Les messages arrivent dans l’onglet Contacts.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-form"' + (c.showForm ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="field" style="margin-top:12px"><label for="s-endpoint">Copier aussi vers <span class="hint">(facultatif)</span></label>' +
@@ -745,6 +749,8 @@
     function bind(id, fn) { var n = $('#' + id); if (n) n.addEventListener('input', function () { fn(n); persist(); }); }
     bind('s-email', function (n) { P().contact.email = n.value.trim(); });
     bind('s-phone', function (n) { P().contact.phone = n.value.trim(); });
+    bind('s-showEmail', function (n) { P().contact.showEmail = n.checked; });
+    bind('s-showPhone', function (n) { P().contact.showPhone = n.checked; });
     bind('s-form', function (n) { P().contact.showForm = n.checked; });
     bind('s-endpoint', function (n) { P().contact.endpoint = n.value.trim(); });
     bind('s-title', function (n) { P().seo.title = n.value; });

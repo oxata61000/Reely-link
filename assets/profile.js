@@ -226,8 +226,8 @@
   function renderFoot() {
     var c = P.contact || {};
     var bits = [];
-    if (c.email) bits.push('<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>');
-    if (c.phone) bits.push('<a href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>');
+    if (c.email && c.showEmail !== false) bits.push('<a href="mailto:' + esc(c.email) + '">' + esc(c.email) + '</a>');
+    if (c.phone && c.showPhone !== false) bits.push('<a href="tel:' + esc(c.phone.replace(/\s/g, '')) + '">' + esc(c.phone) + '</a>');
     return bits.length ? '<footer class="p-foot"><p class="t-label">' + bits.join(' · ') + '</p></footer>' : '';
   }
 
@@ -300,8 +300,8 @@
   function vcard() {
     var c = P.contact || {};
     var lines = ['BEGIN:VCARD', 'VERSION:3.0', 'FN:' + P.name, 'N:;' + P.name + ';;;'];
-    if (c.email) lines.push('EMAIL;TYPE=INTERNET:' + c.email);
-    if (c.phone) lines.push('TEL;TYPE=CELL:' + c.phone);
+    if (c.email && c.showEmail !== false) lines.push('EMAIL;TYPE=INTERNET:' + c.email);
+    if (c.phone && c.showPhone !== false) lines.push('TEL;TYPE=CELL:' + c.phone);
     if (P.bio) lines.push('NOTE:' + P.bio.replace(/\n/g, ' '));
     lines.push('URL:' + location.href.split('?')[0]);
     (P.socials || []).forEach(function (s) { if (s.url) lines.push('X-SOCIALPROFILE;TYPE=' + s.platform + ':' + s.url); });
