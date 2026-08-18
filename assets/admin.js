@@ -576,6 +576,13 @@
      Onglet CONTACTS (leads du formulaire public)
      ============================================================ */
   var LEADS_SCOPE = '*';
+  var TX_LABELS = { achat: 'Achat', vente: 'Vente', location: 'Location' };
+  var STATUS_COLS = [
+    { key: 'new', label: 'Nouveau' },
+    { key: 'contacted', label: 'Contacté' },
+    { key: 'qualified', label: 'Qualifié' },
+    { key: 'lost', label: 'Perdu' }
+  ];
 
   function tabLeads() {
     var scopePicker = '<div class="field" style="max-width:320px;margin-bottom:18px">' +
@@ -592,54 +599,96 @@
       return scopePicker + '<div class="empty"><p>Aucun message reçu pour l’instant.</p>' +
         '<p class="hint" style="margin-top:6px">Les demandes envoyées via le formulaire de contact de la page publique apparaîtront ici.</p></div>';
     }
-    return scopePicker + '<div class="rows" id="leadRows">' + leads.map(leadRowHtml).join('') + '</div>';
+
+    var board = '<div class="kanban" id="kanbanBoard">' + STATUS_COLS.map(function (col) {
+      var items = leads.filter(function (l) { return (l.status || 'new') === col.key; });
+      return '<div class="kanban-col">' +
+        '<div class="kanban-col-head"><b>' + col.label + '</b><span class="kanban-count">' + items.length + '</span></div>' +
+        '<div class="kanban-list" data-status="' + col.key + '">' +
+          (items.length ? items.map(leadCardHtml).join('') : '<p class="hint" style="padding:10px">Aucun</p>') +
+        '</div>' +
+      '</div>';
+    }).join('') + '</div>';
+
+    return scopePicker + board;
   }
 
-  var TX_LABELS = { achat: 'Achat', vente: 'Vente', location: 'Location' };
-
-  function leadRowHtml(l) {
+  function leadCardHtml(l) {
     var date = new Date(l.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     var name = [l.first_name, l.last_name].filter(Boolean).join(' ') || l.name || 'Sans nom';
-    var meta = [l.email, l.phone].filter(Boolean).join(' · ') + ' · ' + date;
+    var meta = [l.email, l.phone].filter(Boolean).join(' · ');
     var tx = l.transaction_type && TX_LABELS[l.transaction_type]
       ? '<span class="tag-mini">' + TX_LABELS[l.transaction_type] + '</span>' : '';
     var client = (LEADS_SCOPE === '*' && l.profiles) ? '<span class="tag-mini">' + esc(l.profiles.name) + '</span>' : '';
-    return '<div class="row" data-id="' + esc(l.id) + '" style="align-items:flex-start">' +
-      '<span class="row-ico">' + ico('mail', 20) + '</span>' +
-      '<span class="row-body">' +
-        '<span class="row-title">' + esc(name) + tx + client + (l.is_read ? '' : '<span class="tag-mini ok">Nouveau</span>') + '</span>' +
-        '<span class="row-url">' + esc(meta) + '</span>' +
-        '<p class="t-body" style="margin-top:6px;white-space:pre-wrap">' + esc(l.message || '') + '</p>' +
-      '</span>' +
-      '<span class="row-actions">' +
-        '<button class="btn-icon" data-act="read" aria-label="' + (l.is_read ? 'Marquer comme non lu' : 'Marquer comme lu') + '">' + ico(l.is_read ? 'mail' : 'check', 18) + '</button>' +
-        '<button class="btn-icon" data-act="del" aria-label="Supprimer">' + ico('trash', 19) + '</button>' +
-      '</span></div>';
+    var status = l.status || 'new';
+    return '<div class="kanban-card" draggable="true" data-id="' + esc(l.id) + '">' +
+      '<div class="kanban-card-top"><b>' + esc(name) + '</b>' + tx + client + '</div>' +
+      '<div class="hint">' + esc(meta) + '</div>' +
+      '<div class="hint">' + date + '</div>' +
+      (l.message ? '<p class="t-body clamp-2" style="margin-top:6px">' + esc(l.message) + '</p>' : '') +
+      '<div class="kanban-card-actions">' +
+        '<select class="select" data-act="status" style="min-height:34px;font-size:12.5px">' +
+          STATUS_COLS.map(function (col) { return '<option value="' + col.key + '"' + (col.key === status ? ' selected' : '') + '>' + col.label + '</option>'; }).join('') +
+        '</select>' +
+        '<button class="btn-icon" data-act="del" aria-label="Supprimer">' + ico('trash', 18) + '</button>' +
+      '</div></div>';
   }
 
   function wireLeads() {
     var scope = $('#leadsScope');
     if (scope) scope.addEventListener('change', function () { LEADS_SCOPE = scope.value; render(); });
 
-    var host = $('#leadRows'); if (!host) return;
-    host.addEventListener('click', function (e) {
-      var row = e.target.closest('.row'); if (!row) return;
-      var id = row.getAttribute('data-id');
-      var lead = window.Store.leadsFor(LEADS_SCOPE).filter(function (x) { return x.id === id; })[0];
-      if (!lead) return;
-      if (e.target.closest('[data-act="read"]')) {
-        window.Store.markLeadRead(lead.id, LEADS_SCOPE, !lead.is_read).then(function () { render(); });
-      } else if (e.target.closest('[data-act="del"]')) {
-        confirmBox('Supprimer', 'Ce message sera définitivement supprimé.', function () {
-          window.Store.deleteLead(lead.id, LEADS_SCOPE).then(function () { render(); toast('Message supprimé'); });
-        }, true);
+    var board = $('#kanbanBoard'); if (!board) return;
+    var dragId = null;
+
+    function leadById(id) { return window.Store.leadsFor(LEADS_SCOPE).filter(function (x) { return x.id === id; })[0]; }
+
+    board.addEventListener('dragstart', function (e) {
+      var card = e.target.closest('.kanban-card'); if (!card) { e.preventDefault(); return; }
+      dragId = card.getAttribute('data-id');
+      card.classList.add('is-dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', dragId);
+    });
+    board.addEventListener('dragend', function () {
+      dragId = null;
+      $$('.kanban-card', board).forEach(function (c) { c.classList.remove('is-dragging'); });
+      $$('.kanban-list', board).forEach(function (l) { l.classList.remove('is-over'); });
+    });
+    board.addEventListener('dragover', function (e) {
+      var list = e.target.closest('.kanban-list'); if (!list) return;
+      e.preventDefault();
+      $$('.kanban-list', board).forEach(function (l) { l.classList.remove('is-over'); });
+      list.classList.add('is-over');
+    });
+    board.addEventListener('drop', function (e) {
+      var list = e.target.closest('.kanban-list'); if (!list || !dragId) return;
+      e.preventDefault();
+      var status = list.getAttribute('data-status');
+      var lead = leadById(dragId);
+      if (lead && (lead.status || 'new') !== status) {
+        window.Store.updateLeadStatus(dragId, LEADS_SCOPE, status).then(function () { render(); });
       }
+    });
+
+    board.addEventListener('change', function (e) {
+      var sel = e.target.closest('[data-act="status"]'); if (!sel) return;
+      var id = sel.closest('.kanban-card').getAttribute('data-id');
+      window.Store.updateLeadStatus(id, LEADS_SCOPE, sel.value).then(function () { render(); });
+    });
+
+    board.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-act="del"]'); if (!b) return;
+      var id = b.closest('.kanban-card').getAttribute('data-id');
+      confirmBox('Supprimer', 'Ce message sera définitivement supprimé.', function () {
+        window.Store.deleteLead(id, LEADS_SCOPE).then(function () { render(); toast('Message supprimé'); });
+      }, true);
     });
   }
 
   function paintLeadsBadge() {
     var n = $('#leadsCount'); if (!n) return;
-    var count = window.Store.leadsFor('*').filter(function (l) { return !l.is_read; }).length;
+    var count = window.Store.leadsFor('*').filter(function (l) { return (l.status || 'new') === 'new'; }).length;
     n.textContent = count || '';
   }
 

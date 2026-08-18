@@ -302,6 +302,11 @@
       .then(function (res) { if (res.error) throw res.error; leadsCache = {}; return refreshLeads(scope); });
   }
 
+  function updateLeadStatus(leadId, scope, status) {
+    return sb().from('leads').update({ status: status, is_read: true }).eq('id', leadId)
+      .then(function (res) { if (res.error) throw res.error; leadsCache = {}; return refreshLeads(scope); });
+  }
+
   function deleteLead(leadId, scope) {
     return sb().from('leads').delete().eq('id', leadId)
       .then(function (res) { if (res.error) throw res.error; leadsCache = {}; return refreshLeads(scope); });
@@ -327,7 +332,8 @@
     },
 
     bump: bump, statsFor: statsFor, resetStats: resetStats, onStatsUpdate: onStatsUpdate,
-    leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate
+    leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, updateLeadStatus: updateLeadStatus,
+    deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.Store;
 })(typeof window !== 'undefined' ? window : this);
