@@ -50,10 +50,6 @@
     var s = String(u || '').trim();
     return /^(https?:|mailto:|tel:|#|\/)/i.test(s) ? s : 'https://' + s.replace(/^\/+/, '');
   }
-  function hostOf(u) {
-    try { return new URL(safeUrl(u)).hostname.replace(/^www\./, ''); } catch (e) { return ''; }
-  }
-
   /* ---------- Application du thème ---------- */
   function applyTheme(t) {
     var r = document.documentElement, b = document.body;
@@ -157,7 +153,7 @@
     var g = ICONS.guess(l.url);
     var icon = l.icon || g.icon;
     var brand = l.brand || ICONS.brandColor(icon) || g.brand;
-    var sub = l.subtitle || hostOf(l.url);
+    var sub = l.subtitle || '';
     var badge = l.badge
       ? '<span class="p-badge' + (/complet|limit|dernier|bientôt/i.test(l.badge) ? ' is-hot' : '') + '">' + esc(l.badge) + '</span>'
       : '';
