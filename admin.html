@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reely Links — Gestionnaire</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700&display=swap">
+<link rel="stylesheet" href="assets/theme.css">
+<link rel="stylesheet" href="assets/admin.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚙️</text></svg>">
+</head>
+<body class="admin">
+<div class="layout">
+
+  <aside class="side" id="side">
+    <div class="brand">
+      <span class="brand-mark" id="brandMark"></span>
+      <span>Reely Links</span>
+    </div>
+
+    <div class="picker">
+      <button class="picker-btn" id="pickerBtn" aria-haspopup="listbox" aria-expanded="false">
+        <span class="picker-av avatar-fallback" id="pickerAv"></span>
+        <span class="picker-meta"><b id="pickerName"></b><small id="pickerHandle"></small></span>
+      </button>
+      <div class="picker-menu" id="pickerMenu" role="listbox" hidden></div>
+    </div>
+
+    <nav id="nav" aria-label="Sections">
+      <button class="nav-item is-active" data-tab="links"></button>
+      <button class="nav-item" data-tab="design"></button>
+      <button class="nav-item" data-tab="stats"></button>
+      <button class="nav-item" data-tab="settings"></button>
+    </nav>
+
+    <div class="side-foot">
+      <button class="btn btn-ghost btn-sm btn-block" id="newProfile"></button>
+      <button class="btn btn-quiet btn-sm btn-block" id="signOut"></button>
+      <p class="hint" style="text-align:center" id="sessionHint"></p>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div>
+      <div class="topbar">
+        <button class="btn-icon burger" id="burger" aria-label="Menu"></button>
+        <h1 id="tabTitle">Liens</h1>
+        <span class="spacer"></span>
+        <button class="btn btn-ghost btn-sm" id="openPublic"></button>
+        <button class="btn btn-primary btn-sm" id="addLink"></button>
+      </div>
+      <div id="tabBody"></div>
+    </div>
+
+    <div class="preview-col">
+      <div class="phone">
+        <div class="phone-screen">
+          <span class="phone-notch"></span>
+          <iframe id="preview" title="Aperçu du profil public" loading="lazy"></iframe>
+        </div>
+      </div>
+      <div class="preview-bar">
+        <span class="url-pill">
+          <code id="publicUrl"></code>
+          <button class="btn-icon" id="copyUrl" style="width:26px;height:26px" aria-label="Copier l'adresse"></button>
+        </span>
+        <button class="btn btn-ghost btn-sm" id="refreshPreview" aria-label="Rafraîchir l'aperçu"></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="assets/supabase-config.js"></script>
+<script src="assets/icons.js"></script>
+<script src="assets/store.js"></script>
+<script src="assets/qr.js"></script>
+<script src="assets/admin.js"></script>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Reely Links — Connexion</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Montserrat:wght@600;700&display=swap">
+<link rel="stylesheet" href="assets/theme.css">
+<link rel="stylesheet" href="assets/admin.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔗</text></svg>">
+<style>
+  body.auth { display: grid; place-items: center; min-height: 100dvh; padding: 20px; background: var(--surface-low); }
+  .auth-card { width: 100%; max-width: 400px; padding: 32px; border-radius: var(--r-2xl); background: var(--surface-lowest); box-shadow: var(--e2); }
+  .auth-brand { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; }
+  .auth-mark { width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; background: linear-gradient(135deg, var(--primary), var(--primary-container)); color: #fff; font-family: var(--font-display); font-weight: 700; }
+  .auth-brand span { font-family: var(--font-display); font-weight: 700; font-size: 18px; }
+  .auth-tabs { display: flex; gap: 4px; padding: 3px; border-radius: var(--r-md); background: var(--surface-container); margin-bottom: 22px; }
+  .auth-tabs button { flex: 1; padding: 9px; border-radius: var(--r); font-size: 13.5px; font-weight: 600; color: var(--on-surface-variant); }
+  .auth-tabs button.is-on { background: var(--surface-lowest); color: var(--primary); box-shadow: var(--e1); }
+  .auth-msg { margin-top: 14px; font-size: 13.5px; text-align: center; }
+  .auth-msg.err { color: var(--error); }
+  .auth-msg.ok { color: var(--success); }
+  .auth-foot { margin-top: 16px; text-align: center; }
+  .auth-foot button { font-size: 13px; color: var(--on-surface-variant); text-decoration: underline; }
+</style>
+</head>
+<body class="auth">
+  <div class="auth-card">
+    <div class="auth-brand"><span class="auth-mark">R</span><span>Reely Links</span></div>
+    <div id="authBody"></div>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="assets/supabase-config.js"></script>
+  <script src="assets/store.js"></script>
+  <script src="assets/login.js"></script>
+</body>
+</html>
