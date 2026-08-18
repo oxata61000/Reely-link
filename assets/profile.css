@@ -165,11 +165,22 @@ body.profile {
 .p-embed iframe { width: 100%; border: 0; display: block; }
 .p-embed-yt iframe { aspect-ratio: 16 / 9; height: auto; }
 
-/* --- Bloc contact --- */
-.p-contact { margin-top: 44px; padding: 28px 24px; border-radius: var(--r-2xl); background: var(--surface-lowest); box-shadow: var(--e1); position: relative; overflow: hidden; }
-.p-contact::before { content: ''; position: absolute; top: 0; right: 0; width: 120px; height: 120px; background: var(--primary-fixed); border-bottom-left-radius: 100%; opacity: .55; }
-.p-contact > * { position: relative; }
-.p-form { display: flex; flex-direction: column; gap: 14px; margin-top: 20px; }
+/* --- Bloc contact : vignette qui se déplie --- */
+.p-contact-card {
+  margin-top: 40px; border-radius: var(--card-radius, var(--r-2xl));
+  background: var(--surface-lowest); box-shadow: var(--e1);
+  transition: box-shadow .28s var(--ease);
+}
+.p-contact-card.is-open { box-shadow: var(--e2); }
+.p-contact-trigger {
+  width: 100%; display: flex; align-items: center; gap: 16px; padding: 16px; text-align: left;
+}
+.p-contact-trigger .p-go { transition: background .28s var(--ease), color .28s var(--ease), transform .3s var(--ease); }
+.p-contact-card.is-open .p-contact-trigger .p-go { transform: rotate(90deg); background: color-mix(in srgb, var(--primary) 12%, transparent); color: var(--primary); }
+.p-contact-panel { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .35s var(--ease); }
+.p-contact-card.is-open .p-contact-panel { grid-template-rows: 1fr; }
+.p-contact-panel > div { overflow: hidden; }
+.p-form { display: flex; flex-direction: column; gap: 14px; padding: 0 20px 22px; }
 .p-form-row { display: grid; grid-template-columns: 1fr; gap: 14px; }
 @media (min-width: 520px) { .p-form-row { grid-template-columns: 1fr 1fr; } }
 

@@ -189,19 +189,37 @@
   function renderContact() {
     var c = P.contact || {};
     if (!c.showForm) return '';
-    return '<section class="p-contact">' +
-      '<h2 class="t-head-lg" style="font-size:26px">Écrivez-nous</h2>' +
-      '<p class="muted" style="margin-top:6px">Une question, un projet ? On répond sous 24 h.</p>' +
-      '<form class="p-form" id="contactForm" novalidate>' +
-        '<div class="p-form-row">' +
-          '<div class="field"><label for="cf-name">Nom</label><input class="input" id="cf-name" name="name" required placeholder="Camille Dupont"></div>' +
-          '<div class="field"><label for="cf-mail">Email</label><input class="input" id="cf-mail" name="email" type="email" required placeholder="camille@exemple.fr"></div>' +
-        '</div>' +
-        '<div class="field"><label for="cf-msg">Message</label><textarea class="textarea" id="cf-msg" name="message" required placeholder="Parlez-nous de votre projet…"></textarea></div>' +
-        '<button class="btn btn-primary btn-block" type="submit">Envoyer' + ICONS.svg('arrowRight', 20) + '</button>' +
-        '<p class="hint" id="cf-status" role="status" aria-live="polite"></p>' +
-      '</form>' +
-    '</section>';
+    return '<div class="p-contact-card" id="contactCard">' +
+      '<button class="p-contact-trigger" type="button" data-act="toggle-contact" aria-expanded="false" aria-controls="contactPanel">' +
+        '<span class="p-ico">' + ICONS.svg('mail', 26) + '</span>' +
+        '<span class="p-link-body">' +
+          '<span class="p-link-title">Nous contacter</span>' +
+          '<span class="p-link-sub">Une question, un projet ? On répond sous 24 h.</span>' +
+        '</span>' +
+        '<span class="p-go">' + ICONS.svg('arrowRight', 19) + '</span>' +
+      '</button>' +
+      '<div class="p-contact-panel" id="contactPanel">' +
+        '<div><form class="p-form" id="contactForm" novalidate>' +
+          '<div class="p-form-row">' +
+            '<div class="field"><label for="cf-first">Prénom</label><input class="input" id="cf-first" name="firstName" required placeholder="Camille"></div>' +
+            '<div class="field"><label for="cf-last">Nom</label><input class="input" id="cf-last" name="lastName" required placeholder="Dupont"></div>' +
+          '</div>' +
+          '<div class="p-form-row">' +
+            '<div class="field"><label for="cf-mail">Email</label><input class="input" id="cf-mail" name="email" type="email" required placeholder="camille@exemple.fr"></div>' +
+            '<div class="field"><label for="cf-phone">Téléphone</label><input class="input" id="cf-phone" name="phone" type="tel" placeholder="06 12 34 56 78"></div>' +
+          '</div>' +
+          '<div class="field"><label for="cf-type">Vous êtes en...</label><select class="select" id="cf-type" name="transactionType">' +
+            '<option value="">Sélectionnez</option>' +
+            '<option value="achat">Achat</option>' +
+            '<option value="vente">Vente</option>' +
+            '<option value="location">Location</option>' +
+          '</select></div>' +
+          '<div class="field"><label for="cf-msg">Contexte</label><textarea class="textarea" id="cf-msg" name="message" required placeholder="Parlez-nous de votre projet…"></textarea></div>' +
+          '<button class="btn btn-primary btn-block" type="submit">Envoyer' + ICONS.svg('arrowRight', 20) + '</button>' +
+          '<p class="hint" id="cf-status" role="status" aria-live="polite"></p>' +
+        '</form></div>' +
+      '</div>' +
+    '</div>';
   }
 
   function renderFoot() {
@@ -331,13 +349,22 @@
       if (act === 'share') shareSheet();
       else if (act === 'qr') qrSheet();
       else if (act === 'vcard') vcard();
+      else if (act === 'toggle-contact') openContact(!document.getElementById('contactCard').classList.contains('is-open'));
       else if (act === 'contact') {
-        var form = document.getElementById('contactForm');
-        if (form) form.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        var card = document.getElementById('contactCard');
+        if (card) { openContact(true); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         else location.href = 'mailto:' + (P.contact.email || '');
       }
     }
   });
+
+  function openContact(open) {
+    var card = document.getElementById('contactCard'); if (!card) return;
+    card.classList.toggle('is-open', open);
+    var trigger = card.querySelector('.p-contact-trigger');
+    trigger.setAttribute('aria-expanded', String(open));
+    if (open) setTimeout(function () { var f = document.getElementById('cf-first'); if (f) f.focus(); }, 350);
+  }
 
   root.addEventListener('submit', function (e) {
     if (!P || e.target.id !== 'contactForm') return;
@@ -345,17 +372,23 @@
     var form = e.target;
     var status = document.getElementById('cf-status');
     var fd = new FormData(form);
-    if (!fd.get('name') || !fd.get('email') || !fd.get('message')) {
-      status.textContent = 'Merci de remplir tous les champs.'; status.style.color = 'var(--error)'; return;
+    if (!fd.get('firstName') || !fd.get('lastName') || !fd.get('email') || !fd.get('message')) {
+      status.textContent = 'Merci de remplir tous les champs obligatoires.'; status.style.color = 'var(--error)'; return;
     }
-    var lead = { name: fd.get('name'), email: fd.get('email'), message: fd.get('message') };
+    var lead = {
+      firstName: fd.get('firstName'), lastName: fd.get('lastName'),
+      email: fd.get('email'), phone: fd.get('phone') || '',
+      transactionType: fd.get('transactionType') || '', message: fd.get('message')
+    };
     status.textContent = 'Envoi en cours…'; status.style.color = '';
     window.Store.addLead(P.id, lead).then(function () {
       form.reset(); status.textContent = 'Message envoyé, merci !'; status.style.color = 'var(--success)';
       var endpoint = (P.contact && P.contact.endpoint) || '';
       if (endpoint) fetch(endpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } }).catch(function () {});
     }).catch(function () {
-      var body = 'De : ' + lead.name + ' <' + lead.email + '>\n\n' + lead.message;
+      var body = 'De : ' + lead.firstName + ' ' + lead.lastName + ' <' + lead.email + '>' +
+        (lead.phone ? '\nTéléphone : ' + lead.phone : '') + (lead.transactionType ? '\nType : ' + lead.transactionType : '') +
+        '\n\n' + lead.message;
       location.href = 'mailto:' + (P.contact.email || '') +
         '?subject=' + encodeURIComponent('Contact via ' + P.name) + '&body=' + encodeURIComponent(body);
       status.textContent = "L'envoi a échoué. Votre logiciel de messagerie va s'ouvrir."; status.style.color = 'var(--error)';

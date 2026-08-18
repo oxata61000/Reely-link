@@ -286,8 +286,13 @@
     // Sur une page exportée en autonome (pas de SDK/config Supabase), rejette proprement
     // pour laisser profile.js basculer sur son repli mailto:.
     if (!cfg || !global.supabase) return Promise.reject(new Error('Supabase non configuré sur cette page.'));
-    return sb().from('leads').insert({ profile_id: profileId, name: lead.name, email: lead.email, message: lead.message })
-      .then(function (res) { if (res.error) throw res.error; });
+    return sb().from('leads').insert({
+      profile_id: profileId,
+      name: [lead.firstName, lead.lastName].filter(Boolean).join(' '),
+      first_name: lead.firstName || null, last_name: lead.lastName || null,
+      email: lead.email, phone: lead.phone || null, transaction_type: lead.transactionType || null,
+      message: lead.message
+    }).then(function (res) { if (res.error) throw res.error; });
   }
 
   function markLeadRead(leadId, profileId, isRead) {

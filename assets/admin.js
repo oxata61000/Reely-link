@@ -584,13 +584,19 @@
     return '<div class="rows" id="leadRows">' + leads.map(leadRowHtml).join('') + '</div>';
   }
 
+  var TX_LABELS = { achat: 'Achat', vente: 'Vente', location: 'Location' };
+
   function leadRowHtml(l) {
     var date = new Date(l.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+    var name = [l.first_name, l.last_name].filter(Boolean).join(' ') || l.name || 'Sans nom';
+    var meta = [l.email, l.phone].filter(Boolean).join(' · ') + ' · ' + date;
+    var tx = l.transaction_type && TX_LABELS[l.transaction_type]
+      ? '<span class="tag-mini">' + TX_LABELS[l.transaction_type] + '</span>' : '';
     return '<div class="row" data-id="' + esc(l.id) + '" style="align-items:flex-start">' +
       '<span class="row-ico">' + ico('mail', 20) + '</span>' +
       '<span class="row-body">' +
-        '<span class="row-title">' + esc(l.name || 'Sans nom') + (l.is_read ? '' : '<span class="tag-mini ok">Nouveau</span>') + '</span>' +
-        '<span class="row-url">' + esc(l.email || '') + ' · ' + date + '</span>' +
+        '<span class="row-title">' + esc(name) + tx + (l.is_read ? '' : '<span class="tag-mini ok">Nouveau</span>') + '</span>' +
+        '<span class="row-url">' + esc(meta) + '</span>' +
         '<p class="t-body" style="margin-top:6px;white-space:pre-wrap">' + esc(l.message || '') + '</p>' +
       '</span>' +
       '<span class="row-actions">' +
@@ -639,7 +645,7 @@
         '<div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" value="' + esc(c.email || '') + '"></div>' +
         '<div class="field"><label for="s-phone">Téléphone</label><input class="input" id="s-phone" value="' + esc(c.phone || '') + '"></div>' +
       '</div>' +
-      '<div class="row-toggle"><div><p>Afficher le formulaire de contact</p><small>Bloc « Écrivez-nous » en bas de page. Les messages arrivent dans l’onglet Contacts.</small></div>' +
+      '<div class="row-toggle"><div><p>Afficher le formulaire de contact</p><small>Vignette « Nous contacter » en bas de page, qui se déplie au clic. Les messages arrivent dans l’onglet Contacts.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-form"' + (c.showForm ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="field" style="margin-top:12px"><label for="s-endpoint">Copier aussi vers <span class="hint">(facultatif)</span></label>' +
         '<input class="input" id="s-endpoint" value="' + esc(c.endpoint || '') + '" placeholder="https://formspree.io/f/xxxx">' +
