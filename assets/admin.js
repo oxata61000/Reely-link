@@ -78,6 +78,14 @@
     var p = P(); if (!p) return '';
     return location.href.replace(/admin\.html.*$/, '') + 'index.html?u=' + p.slug;
   }
+  var UTM_PLATFORMS = [
+    { key: 'instagram', label: 'Instagram' }, { key: 'facebook', label: 'Facebook' },
+    { key: 'linkedin', label: 'LinkedIn' }, { key: 'tiktok', label: 'TikTok' }, { key: 'youtube', label: 'YouTube' }
+  ];
+  function utmUrl(platform) {
+    var u = publicUrl(); if (!u) return '';
+    return u + '&utm_source=' + platform;
+  }
   var previewSlug = null;
   function postPreview() {
     var p = P(); if (!p) return;
@@ -571,7 +579,7 @@
     var keys = Object.keys(sources || {});
     if (!keys.length) return '<p class="hint">Pas encore assez de visites pour connaître la source.</p>';
     var max = Math.max.apply(null, keys.map(function (k) { return sources[k]; }));
-    var labels = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', google: 'Google', direct: 'Accès direct', autre: 'Autre' };
+    var labels = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube', google: 'Google', direct: 'Accès direct', autre: 'Autre' };
     return keys.sort(function (a, b) { return sources[b] - sources[a]; }).map(function (k) {
       var v = sources[k];
       return '<div class="bar-row"><div><div class="bar-label truncate">' + esc(labels[k] || k) + '</div>' +
@@ -596,7 +604,7 @@
   var LEADS_SCOPE = '*';
   var LEADS_SEARCH = '';
   var TX_LABELS = { achat: 'Achat', vente: 'Vente', location: 'Location' };
-  var SOURCE_LABELS = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', google: 'Google', direct: 'Direct' };
+  var SOURCE_LABELS = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube', google: 'Google', direct: 'Direct' };
   var STATUS_COLS = [
     { key: 'new', label: 'Nouveau' },
     { key: 'contacted', label: 'Contacté' },
@@ -810,6 +818,15 @@
       '<div class="callout" style="margin-top:14px">' + ico('qr', 19) + '<span>Générez un QR code pointant vers ce profil : idéal pour un flyer, une vitrine ou une carte de visite.' +
       '<br><button class="btn btn-ghost btn-sm" id="showQr" style="margin-top:10px">' + ico('qr', 18) + 'Voir le QR code</button></span></div></div>' +
 
+    '<div class="panel"><h3>Liens pour vos bios</h3><p class="hint">Un lien différent par réseau pour savoir d’où viennent vraiment vos visiteurs (visible dans Statistiques et sur chaque contact).</p>' +
+      '<div class="stack" id="utmLinks">' + UTM_PLATFORMS.map(function (p) {
+        return '<div class="inline">' +
+          '<span class="row-ico" style="--brand:' + (ICONS.brandColor(p.key) || 'var(--primary)') + '">' + ico(p.key, 20) + '</span>' +
+          '<div class="field"><input class="input" readonly value="' + esc(utmUrl(p.key)) + '"></div>' +
+          '<button class="btn-icon" data-copy aria-label="Copier le lien ' + p.label + '">' + ico('copy', 18) + '</button>' +
+        '</div>';
+      }).join('') + '</div></div>' +
+
     '<div class="panel"><h3>Contact</h3>' +
       '<div class="grid2">' +
         '<div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" value="' + esc(c.email || '') + '"></div>' +
@@ -875,6 +892,14 @@
       var old = P().slug, prof = P();
       delete D.profiles[old]; prof.slug = v; D.profiles[v] = prof; D.active = v;
       slug.value = v; persist(); render(); toast('Identifiant mis à jour');
+    });
+
+    var utmList = $('#utmLinks');
+    if (utmList) utmList.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-copy]'); if (!b) return;
+      var input = b.previousElementSibling.querySelector('input');
+      navigator.clipboard.writeText(input.value).then(function () { toast('Lien copié'); },
+        function () { toast('Copie refusée par le navigateur', true); });
     });
 
     var qr = $('#showQr');
