@@ -200,7 +200,7 @@
       '</button>' +
       '<div class="p-contact-panel" id="contactPanel">' +
         '<div><form class="p-form" id="contactForm" novalidate>' +
-          '<div class="p-hp" aria-hidden="true"><label for="cf-company">Société</label><input id="cf-company" name="company" tabindex="-1" autocomplete="off"></div>' +
+          '<div class="p-hp" aria-hidden="true"><label for="cf-orgnote">Ne pas remplir</label><input id="cf-orgnote" name="org_note" tabindex="-1" autocomplete="off"></div>' +
           '<div class="p-form-row">' +
             '<div class="field"><label for="cf-first">Prénom</label><input class="input" id="cf-first" name="firstName" required placeholder="Camille"></div>' +
             '<div class="field"><label for="cf-last">Nom</label><input class="input" id="cf-last" name="lastName" required placeholder="Dupont"></div>' +
@@ -356,16 +356,12 @@
     }
   });
 
-  var contactOpenedAt = 0;
   function openContact(open) {
     var card = document.getElementById('contactCard'); if (!card) return;
     card.classList.toggle('is-open', open);
     var trigger = card.querySelector('.p-contact-trigger');
     trigger.setAttribute('aria-expanded', String(open));
-    if (open) {
-      contactOpenedAt = Date.now();
-      setTimeout(function () { var f = document.getElementById('cf-first'); if (f) f.focus(); }, 350);
-    }
+    if (open) setTimeout(function () { var f = document.getElementById('cf-first'); if (f) f.focus(); }, 350);
   }
 
   root.addEventListener('submit', function (e) {
@@ -377,8 +373,9 @@
     if (!fd.get('firstName') || !fd.get('lastName') || !fd.get('email') || !fd.get('message')) {
       status.textContent = 'Merci de remplir tous les champs obligatoires.'; status.style.color = 'var(--error)'; return;
     }
-    // Anti-spam silencieux : champ piège rempli, ou envoi trop rapide après ouverture du formulaire.
-    if (fd.get('company') || (contactOpenedAt && Date.now() - contactOpenedAt < 2500)) {
+    // Anti-spam silencieux : uniquement le champ piège (les remplisseurs automatiques
+    // de formulaire ignorent en général les champs masqués par CSS + tabindex="-1").
+    if (fd.get('org_note')) {
       form.reset(); status.textContent = 'Message envoyé, merci !'; status.style.color = 'var(--success)';
       return;
     }
