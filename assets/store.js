@@ -49,6 +49,7 @@
       card: 'soft',
       radius: 28,
       orbs: true,
+      dock: true,
       font: 'Montserrat'
     };
   }

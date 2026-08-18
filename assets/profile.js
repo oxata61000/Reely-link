@@ -321,7 +321,7 @@
     root.innerHTML =
       '<div class="bg-orbs" aria-hidden="true"><i></i><i></i></div>' +
       '<div class="shell">' + renderHead() + renderLinks() + renderContact() + renderFoot() + '</div>' +
-      renderDock() +
+      (P.theme.dock !== false ? renderDock() : '') +
       (isPreview ? '<div class="preview-flag">Aperçu</div>' : '');
     track('view');
   }

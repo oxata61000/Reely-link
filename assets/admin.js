@@ -413,6 +413,8 @@
         '<input type="range" id="d-radius" min="0" max="40" value="' + t.radius + '"></div>' +
       '<div class="row-toggle"><div><p>Halos animés en fond</p><small>Ambiance colorée. Désactivez pour un rendu plus sobre.</small></div>' +
         '<label class="switch"><input type="checkbox" id="d-orbs"' + (t.orbs !== false ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="row-toggle"><div><p>Barre d’actions flottante</p><small>Menu en bas de page (Partager, QR code, Contact, Ajouter aux contacts).</small></div>' +
+        '<label class="switch"><input type="checkbox" id="d-dock"' + (t.dock !== false ? ' checked' : '') + '><span></span></label></div>' +
     '</div>' +
 
     '<div class="panel"><h3>Réseaux sociaux</h3><p class="hint">Affichés en pastilles rondes sous la bio.</p>' +
@@ -439,6 +441,7 @@
     live('d-tags', function (n) { P().tags = n.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean); });
     live('d-verified', function (n) { P().verified = n.checked; });
     live('d-orbs', function (n) { t.orbs = n.checked; });
+    live('d-dock', function (n) { t.dock = n.checked; });
     live('d-radius', function (n) { t.radius = +n.value; $('#radiusVal').textContent = n.value; });
 
     function syncColor(colorId, hexId, key) {
