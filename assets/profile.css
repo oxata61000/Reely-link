@@ -140,6 +140,26 @@ body.profile {
 }
 @keyframes sheen { 0%,72% { transform: translateX(-120%); } 100% { transform: translateX(120%); } }
 
+/* Vignette photo (ex. bien immobilier) */
+.p-link-photo {
+  flex-direction: column; align-items: stretch; padding: 0; gap: 0;
+}
+.p-link-photo-img { width: 100%; aspect-ratio: 16 / 10; overflow: hidden; background: var(--surface-container); }
+.p-link-photo-img img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .4s var(--ease); }
+.p-link-photo:hover .p-link-photo-img img { transform: scale(1.04); }
+.p-link-photo-badge { position: absolute; left: 14px; top: 14px; z-index: 1; }
+.p-link-photo-go {
+  position: absolute; right: 12px; top: 12px; z-index: 1;
+  background: color-mix(in srgb, var(--surface-lowest) 85%, transparent); backdrop-filter: blur(6px);
+}
+.p-link-photo-body {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 34px 16px 14px;
+  background: linear-gradient(to top, rgba(10,12,20,.78), rgba(10,12,20,.32) 65%, transparent);
+  color: #fff;
+}
+.p-link-photo-body .p-link-title { color: #fff; }
+.p-link-photo-body .p-link-sub { color: color-mix(in srgb, #fff 78%, transparent); }
+
 /* Embeds (YouTube / Spotify) */
 .p-embed { border-radius: var(--r-2xl); overflow: hidden; box-shadow: var(--e1); background: var(--surface-lowest); }
 .p-embed iframe { width: 100%; border: 0; display: block; }

@@ -145,6 +145,19 @@
     var badge = l.badge
       ? '<span class="p-badge' + (/complet|limit|dernier|bientôt/i.test(l.badge) ? ' is-hot' : '') + '">' + esc(l.badge) + '</span>'
       : '';
+
+    if (l.image) {
+      var showTitle = l.showTitle !== false;
+      return '<a class="p-link p-link-photo' + (l.featured ? ' is-featured' : '') + '" href="' + esc(safeUrl(l.url)) + '"' +
+        ' target="_blank" rel="noopener" data-id="' + esc(l.id) + '" style="--i:' + i + '">' +
+        '<span class="p-link-photo-img"><img src="' + esc(l.image) + '" alt="" loading="lazy"></span>' +
+        (badge ? '<span class="p-link-photo-badge">' + badge + '</span>' : '') +
+        '<span class="p-go p-link-photo-go">' + ICONS.svg('arrowRight', 19) + '</span>' +
+        (showTitle ? '<span class="p-link-photo-body"><span class="p-link-title">' + esc(l.title) + '</span>' +
+          (sub ? '<span class="p-link-sub clamp-1">' + esc(sub) + '</span>' : '') + '</span>' : '') +
+      '</a>';
+    }
+
     var iconHtml = /^https?:\/\//.test(icon) ? '<img src="' + esc(icon) + '" alt="">' : ICONS.svg(icon, 26);
 
     return '<a class="p-link' + (l.featured ? ' is-featured' : '') + '" href="' + esc(safeUrl(l.url)) + '"' +

@@ -96,6 +96,7 @@
       id: row.id, type: row.type, title: row.title || '', subtitle: row.subtitle || '',
       url: row.url || '', icon: row.icon || '', brand: row.brand || null,
       featured: !!row.featured, visible: row.visible !== false, badge: row.badge || '',
+      image: row.image || '', showTitle: row.show_title !== false,
       schedule: { start: row.schedule_start || '', end: row.schedule_end || '' },
       clicks: 0
     };
@@ -122,6 +123,18 @@
   function onAuthChange(fn) { sb().auth.onAuthStateChange(function (event, session) { fn(session); }); }
   function resetPassword(email, redirectTo) { return sb().auth.resetPasswordForEmail(email, { redirectTo: redirectTo }); }
   function updatePassword(password) { return sb().auth.updateUser({ password: password }); }
+
+  /* ---------- Fichiers (logo, photos de liens) ---------- */
+  var MEDIA_BUCKET = 'media';
+  function uploadFile(profileId, file, prefix) {
+    var ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg';
+    var path = profileId + '/' + (prefix || 'file') + '-' + Date.now() + '.' + ext;
+    return sb().storage.from(MEDIA_BUCKET).upload(path, file, { upsert: true, cacheControl: '3600' })
+      .then(function (res) {
+        if (res.error) throw res.error;
+        return sb().storage.from(MEDIA_BUCKET).getPublicUrl(path).data.publicUrl;
+      });
+  }
 
   /* ---------- Profils + liens ---------- */
   function load() {
@@ -156,6 +169,7 @@
           title: l.title || '', subtitle: l.subtitle || '', url: l.url || '',
           icon: l.icon || '', brand: l.brand || null,
           featured: !!l.featured, visible: l.visible !== false, badge: l.badge || '',
+          image: l.image || null, show_title: l.showTitle !== false,
           schedule_start: (l.schedule && l.schedule.start) || null,
           schedule_end: (l.schedule && l.schedule.end) || null
         };
@@ -298,7 +312,7 @@
     },
 
     load: load, getPublicProfile: getPublicProfile,
-    saveProfile: saveProfile, deleteProfile: deleteProfile,
+    saveProfile: saveProfile, deleteProfile: deleteProfile, uploadFile: uploadFile,
     createProfile: function (opts) {
       var p = blankProfile(opts.slug, opts.name);
       p.inviteEmail = opts.inviteEmail || '';

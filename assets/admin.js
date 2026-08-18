@@ -33,6 +33,14 @@
   function ico(n, s) { return ICONS.svg(n, s || 20); }
   function hostOf(u) { try { return new URL(/^https?:/.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); } catch (e) { return u || ''; } }
 
+  /** Valide puis téléverse une image dans le stockage Supabase, renvoie l'URL publique. */
+  function uploadImage(file, prefix) {
+    if (!file.type || file.type.indexOf('image/') !== 0) return Promise.reject(new Error('Choisissez un fichier image.'));
+    if (file.size > 5 * 1024 * 1024) return Promise.reject(new Error('Image trop lourde (5 Mo max).'));
+    var prof = P(); if (!prof || !prof.id) return Promise.reject(new Error('Enregistrez d’abord le profil.'));
+    return window.Store.uploadFile(prof.id, file, prefix);
+  }
+
   function toast(msg, isError) {
     var host = $('.toast-host') || (function () { var h = el('<div class="toast-host"></div>'); document.body.appendChild(h); return h; })();
     var t = el('<div class="toast">' + ico(isError ? 'close' : 'check', 18) + '<span>' + esc(msg) + '</span></div>');
@@ -172,7 +180,7 @@
   function editLink(id) {
     var isNew = !id;
     var l = isNew
-      ? { id: window.Store.uid('l'), type: 'link', title: '', subtitle: '', url: '', icon: '', brand: null, featured: false, visible: true, badge: '', schedule: { start: '', end: '' }, clicks: 0 }
+      ? { id: window.Store.uid('l'), type: 'link', title: '', subtitle: '', url: '', icon: '', brand: null, featured: false, visible: true, badge: '', image: '', showTitle: true, schedule: { start: '', end: '' }, clicks: 0 }
       : JSON.parse(JSON.stringify(P().links.filter(function (x) { return x.id === id; })[0]));
 
     var body =
@@ -193,6 +201,17 @@
           '</select></div>' +
         '</div>' +
         '<div class="field"><label>Icône</label><div class="icon-grid" id="f-icons"></div></div>' +
+        '<div class="field"><label>Photo <span class="hint">(facultatif — remplace la ligne classique par une grande vignette photo, idéal pour un bien immobilier)</span></label>' +
+          '<div class="inline" style="align-items:center;flex-wrap:wrap">' +
+            '<span id="f-imgPreview" style="width:64px;height:48px;border-radius:10px;overflow:hidden;flex:none;background:var(--surface-container);display:grid;place-items:center;color:var(--tertiary)">' +
+              (l.image ? '<img src="' + esc(l.image) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : ico('camera', 20)) +
+            '</span>' +
+            '<button class="btn btn-ghost btn-sm" type="button" id="f-imgUpload">' + ico('upload', 16) + 'Choisir une photo</button>' +
+            '<button class="btn btn-quiet btn-sm" type="button" id="f-imgClear">Retirer</button>' +
+            '<input type="file" id="f-imgFile" accept="image/*" hidden>' +
+          '</div></div>' +
+        '<div class="row-toggle" id="f-showTitleRow"><div><p>Afficher le titre sur la photo</p><small>Superpose le titre et le sous-titre en bas de la photo. Désactivez pour une photo seule.</small></div>' +
+          '<label class="switch"><input type="checkbox" id="f-showTitle"' + (l.showTitle !== false ? ' checked' : '') + '><span></span></label></div>' +
         '<div class="grid2">' +
           '<div class="field"><label for="f-start">Publier à partir du</label><input class="input" id="f-start" type="datetime-local" value="' + esc((l.schedule && l.schedule.start) || '') + '"></div>' +
           '<div class="field"><label for="f-end">Retirer le</label><input class="input" id="f-end" type="datetime-local" value="' + esc((l.schedule && l.schedule.end) || '') + '"></div>' +
@@ -227,6 +246,26 @@
       grid.querySelector('[data-i="' + g.icon + '"]').classList.add('is-on');
     });
 
+    var imgUpload = $('#f-imgUpload', m.node), imgFile = $('#f-imgFile', m.node), imgClear = $('#f-imgClear', m.node), imgPreview = $('#f-imgPreview', m.node);
+    imgUpload.onclick = function () { imgFile.click(); };
+    imgFile.onchange = function () {
+      var file = imgFile.files[0]; if (!file) return;
+      imgUpload.disabled = true; imgUpload.textContent = 'Envoi…';
+      uploadImage(file, 'link').then(function (url) {
+        l.image = url;
+        imgPreview.innerHTML = '<img src="' + esc(url) + '" alt="" style="width:100%;height:100%;object-fit:cover">';
+        imgUpload.disabled = false; imgUpload.innerHTML = ico('upload', 16) + 'Choisir une photo';
+      }).catch(function (err) {
+        imgUpload.disabled = false; imgUpload.innerHTML = ico('upload', 16) + 'Choisir une photo';
+        toast(err && err.message || 'Envoi impossible', true);
+      });
+      imgFile.value = '';
+    };
+    imgClear.onclick = function () {
+      l.image = '';
+      imgPreview.innerHTML = ico('camera', 20);
+    };
+
     $('[data-save]', m.node).onclick = function () {
       var url = $('#f-url', m.node).value.trim();
       var title = $('#f-title', m.node).value.trim();
@@ -241,6 +280,7 @@
       l.brand = ICONS.brandColor(l.icon);
       l.featured = $('#f-feat', m.node).checked;
       l.visible = $('#f-vis', m.node).checked;
+      l.showTitle = $('#f-showTitle', m.node).checked;
       l.schedule = { start: $('#f-start', m.node).value, end: $('#f-end', m.node).value };
 
       if (l.featured) P().links.forEach(function (x) { if (x.id !== l.id) x.featured = false; });
@@ -337,7 +377,15 @@
           '<div class="field"><label for="d-handle">Identifiant</label><input class="input" id="d-handle" value="' + esc(P().handle) + '" placeholder="@moncompte"></div>' +
         '</div>' +
         '<div class="field"><label for="d-bio">Bio</label><textarea class="textarea" id="d-bio" maxlength="200" placeholder="Une phrase qui dit ce que vous faites.">' + esc(P().bio) + '</textarea><span class="hint">200 caractères max.</span></div>' +
-        '<div class="field"><label for="d-avatar">Photo (URL)</label><input class="input" id="d-avatar" value="' + esc(P().avatar) + '" placeholder="https://… (laisser vide pour les initiales)"></div>' +
+        '<div class="field"><label>Photo de profil / logo</label>' +
+          '<div class="inline" style="align-items:center;flex-wrap:wrap">' +
+            '<span class="avatar-fallback" id="d-avatarPreview" style="width:64px;height:64px;border-radius:50%;overflow:hidden;font-size:20px;flex:none"></span>' +
+            '<button class="btn btn-ghost btn-sm" type="button" id="d-avatarUpload">' + ico('upload', 16) + 'Choisir un fichier</button>' +
+            '<button class="btn btn-quiet btn-sm" type="button" id="d-avatarClear">Retirer</button>' +
+            '<input type="file" id="d-avatarFile" accept="image/*" hidden>' +
+          '</div>' +
+          '<input class="input" id="d-avatar" value="' + esc(P().avatar) + '" placeholder="ou collez une URL d’image" style="margin-top:10px">' +
+        '</div>' +
         '<div class="grid2">' +
           '<div class="field"><label for="d-initials">Initiales de secours</label><input class="input" id="d-initials" maxlength="3" value="' + esc(P().initials) + '"></div>' +
           '<div class="field"><label for="d-tags">Étiquettes</label><input class="input" id="d-tags" value="' + esc((P().tags || []).join(', ')) + '" placeholder="Studio, Vidéo, Paris"><span class="hint">Séparées par des virgules.</span></div>' +
@@ -386,8 +434,8 @@
     live('d-name', function (n) { P().name = n.value; paintPicker(); });
     live('d-handle', function (n) { P().handle = n.value; paintPicker(); });
     live('d-bio', function (n) { P().bio = n.value; });
-    live('d-avatar', function (n) { P().avatar = n.value.trim(); paintPicker(); });
-    live('d-initials', function (n) { P().initials = n.value.toUpperCase(); paintPicker(); });
+    live('d-avatar', function (n) { P().avatar = n.value.trim(); paintPicker(); paintAvatarPreview(); });
+    live('d-initials', function (n) { P().initials = n.value.toUpperCase(); paintPicker(); paintAvatarPreview(); });
     live('d-tags', function (n) { P().tags = n.value.split(',').map(function (s) { return s.trim(); }).filter(Boolean); });
     live('d-verified', function (n) { P().verified = n.checked; });
     live('d-orbs', function (n) { t.orbs = n.checked; });
@@ -422,6 +470,33 @@
         b.classList.add('is-on'); fn(b.getAttribute('data-v')); persist();
       });
     }
+
+    function paintAvatarPreview() {
+      var p = P(); var av = $('#d-avatarPreview'); if (!av) return;
+      av.innerHTML = p.avatar ? '<img src="' + esc(p.avatar) + '" alt="" style="width:100%;height:100%;object-fit:cover">' : esc(p.initials || p.name.slice(0, 2).toUpperCase());
+    }
+    paintAvatarPreview();
+
+    var avUpload = $('#d-avatarUpload'), avFile = $('#d-avatarFile'), avClear = $('#d-avatarClear');
+    if (avUpload) avUpload.onclick = function () { avFile.click(); };
+    if (avFile) avFile.onchange = function () {
+      var file = avFile.files[0]; if (!file) return;
+      avUpload.disabled = true; avUpload.textContent = 'Envoi…';
+      uploadImage(file, 'avatar').then(function (url) {
+        P().avatar = url; $('#d-avatar').value = url;
+        paintAvatarPreview(); paintPicker(); persist();
+        avUpload.disabled = false; avUpload.innerHTML = ico('upload', 16) + 'Choisir un fichier';
+        toast('Photo mise à jour');
+      }).catch(function (err) {
+        avUpload.disabled = false; avUpload.innerHTML = ico('upload', 16) + 'Choisir un fichier';
+        toast(err && err.message || 'Envoi impossible', true);
+      });
+      avFile.value = '';
+    };
+    if (avClear) avClear.onclick = function () {
+      P().avatar = ''; $('#d-avatar').value = '';
+      paintAvatarPreview(); paintPicker(); persist();
+    };
 
     var list = $('#socialList');
     if (list) {
