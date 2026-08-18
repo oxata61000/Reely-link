@@ -96,6 +96,7 @@
     [/(calendly\.com|cal\.com)/i,'calendar',  '#006BFF'],
     [/(shopify|etsy\.com|amazon\.)/i,'cart', null],
     [/(notion\.so|docs\.google)/i,'doc',     null],
+    [/\.pdf(\?|#|$)/i,         'doc',       null],
     [/(maps\.google|goo\.gl\/maps)/i,'pin',  null]
   ];
 

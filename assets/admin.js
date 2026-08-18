@@ -42,6 +42,15 @@
     return window.Store.uploadFile(prof.id, file, prefix);
   }
 
+  /** Valide puis téléverse un PDF dans le stockage Supabase, renvoie l'URL publique. */
+  function uploadDoc(file, prefix) {
+    if (!file.type || file.type !== 'application/pdf') return Promise.reject(new Error('Choisissez un fichier PDF.'));
+    if (file.size > 20 * 1024 * 1024) return Promise.reject(new Error('Fichier trop lourd (20 Mo max).'));
+    var prof = P(); if (!prof || !prof.id) return Promise.reject(new Error('Enregistrez d’abord le profil.'));
+    return window.Store.uploadFile(prof.id, file, prefix);
+  }
+  function isPdfUrl(u) { return /\.pdf(\?|#|$)/i.test(u || ''); }
+
   function toast(msg, isError) {
     var host = $('.toast-host') || (function () { var h = el('<div class="toast-host"></div>'); document.body.appendChild(h); return h; })();
     var t = el('<div class="toast">' + ico(isError ? 'close' : 'check', 18) + '<span>' + esc(msg) + '</span></div>');
@@ -197,6 +206,12 @@
         '<div class="field"><label for="f-url">Adresse du lien</label>' +
           '<input class="input" id="f-url" placeholder="https://instagram.com/moncompte" value="' + esc(l.url) + '">' +
           '<span class="hint">Collez l’URL : l’icône et la couleur de marque sont détectées automatiquement.</span></div>' +
+        '<div class="field"><label>Ou importez un PDF <span class="hint">(brochure, grille tarifaire, honoraires…)</span></label>' +
+          '<div class="inline" style="align-items:center;flex-wrap:wrap">' +
+            '<button class="btn btn-ghost btn-sm" type="button" id="f-pdfUpload">' + ico('upload', 16) + 'Choisir un PDF</button>' +
+            '<span id="f-pdfLink">' + (isPdfUrl(l.url) ? '<a class="btn btn-quiet btn-sm" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + ico('doc', 16) + 'Voir le fichier</a>' : '') + '</span>' +
+            '<input type="file" id="f-pdfFile" accept="application/pdf" hidden>' +
+          '</div></div>' +
         '<div class="field"><label for="f-title">Titre</label>' +
           '<input class="input" id="f-title" placeholder="Réserver un appel" value="' + esc(l.title) + '"></div>' +
         '<div class="field"><label for="f-sub">Sous-titre <span class="hint">(facultatif)</span></label>' +
@@ -273,6 +288,26 @@
     imgClear.onclick = function () {
       l.image = '';
       imgPreview.innerHTML = ico('camera', 20);
+    };
+
+    var pdfUpload = $('#f-pdfUpload', m.node), pdfFile = $('#f-pdfFile', m.node), pdfLink = $('#f-pdfLink', m.node);
+    pdfUpload.onclick = function () { pdfFile.click(); };
+    pdfFile.onchange = function () {
+      var file = pdfFile.files[0]; if (!file) return;
+      pdfUpload.disabled = true; pdfUpload.textContent = 'Envoi…';
+      uploadDoc(file, 'doc').then(function (url) {
+        $('#f-url', m.node).value = url;
+        pdfLink.innerHTML = '<a class="btn btn-quiet btn-sm" href="' + esc(url) + '" target="_blank" rel="noopener">' + ico('doc', 16) + 'Voir le fichier</a>';
+        if (!chosen) { chosen = 'doc'; paintIcons(); }
+        var titleField = $('#f-title', m.node);
+        if (!titleField.value.trim()) titleField.value = file.name.replace(/\.pdf$/i, '');
+        pdfUpload.disabled = false; pdfUpload.innerHTML = ico('upload', 16) + 'Choisir un PDF';
+        toast('PDF importé');
+      }).catch(function (err) {
+        pdfUpload.disabled = false; pdfUpload.innerHTML = ico('upload', 16) + 'Choisir un PDF';
+        toast(err && err.message || 'Envoi impossible', true);
+      });
+      pdfFile.value = '';
     };
 
     $('[data-save]', m.node).onclick = function () {
