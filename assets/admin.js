@@ -6,6 +6,7 @@
 
   var D = null;
   var TAB = 'links';
+  var IS_ADMIN = false;
 
   function P() { return (D && D.active) ? D.profiles[D.active] : null; }
 
@@ -818,6 +819,18 @@
       '<div class="callout" style="margin-top:14px">' + ico('qr', 19) + '<span>Générez un QR code pointant vers ce profil : idéal pour un flyer, une vitrine ou une carte de visite.' +
       '<br><button class="btn btn-ghost btn-sm" id="showQr" style="margin-top:10px">' + ico('qr', 18) + 'Voir le QR code</button></span></div></div>' +
 
+    (IS_ADMIN ? '<div class="panel"><h3>Compte client</h3>' + (
+      P().ownerId
+        ? '<p class="hint">Compte lié' + (P().inviteEmail ? ' — ' + esc(P().inviteEmail) : '') + '. Le client peut se connecter et gérer ce profil lui-même.</p>'
+        : (P().inviteEmail
+            ? '<p class="hint">Invitation envoyée à <b>' + esc(P().inviteEmail) + '</b>, en attente qu’il l’accepte.</p>' +
+              '<button class="btn btn-ghost btn-sm" id="resendInvite">' + ico('mail', 18) + 'Renvoyer l’invitation</button>'
+            : '<p class="hint">Aucun compte relié. Envoyez une invitation pour que le client puisse se connecter et gérer ce profil.</p>' +
+              '<div class="field"><label for="s-inviteEmail">Email du client</label><input class="input" id="s-inviteEmail" type="email" placeholder="client@exemple.fr"></div>' +
+              '<button class="btn btn-primary btn-sm" id="sendInvite">' + ico('mail', 18) + 'Envoyer l’invitation</button>'
+          )
+    ) + '</div>' : '') +
+
     '<div class="panel"><h3>Liens pour vos bios</h3><p class="hint">Un lien différent par réseau pour savoir d’où viennent vraiment vos visiteurs (visible dans Statistiques et sur chaque contact).</p>' +
       '<div class="stack" id="utmLinks">' + UTM_PLATFORMS.map(function (p) {
         return '<div class="inline">' +
@@ -864,9 +877,9 @@
       '</div>' +
       '<div class="callout" style="margin-top:14px">' + ico('sparkle', 19) + '<span>La page exportée est un fichier unique : aucune dépendance, aucun serveur, aucun cookie. Renommez-la <code>index.html</code> et déposez-la sur l’hébergement du client.</span></div></div>' +
 
-    '<div class="panel"><h3>Zone sensible</h3>' +
+    (IS_ADMIN ? '<div class="panel"><h3>Zone sensible</h3>' +
       '<div class="callout warn">' + ico('trash', 19) + '<span>Supprimer définitivement le profil <b>' + esc(P().name) + '</b> et tous ses liens.' +
-      '<br><button class="btn btn-danger btn-sm" id="delProfile" style="margin-top:10px">Supprimer ce profil</button></span></div></div>';
+      '<br><button class="btn btn-danger btn-sm" id="delProfile" style="margin-top:10px">Supprimer ce profil</button></span></div></div>' : '');
   }
 
   function wireSettings() {
@@ -893,6 +906,34 @@
       delete D.profiles[old]; prof.slug = v; D.profiles[v] = prof; D.active = v;
       slug.value = v; persist(); render(); toast('Identifiant mis à jour');
     });
+
+    var sendInvite = $('#sendInvite');
+    if (sendInvite) sendInvite.onclick = function () {
+      var email = ($('#s-inviteEmail').value || '').trim();
+      if (!email) { toast('Entrez un email', true); return; }
+      sendInvite.disabled = true;
+      var prof = P();
+      prof.inviteEmail = email;
+      window.Store.saveProfile(prof).then(function () {
+        return window.Store.auth.inviteClient(email);
+      }).then(function () {
+        toast('Invitation envoyée à ' + email); render();
+      }).catch(function (err) {
+        sendInvite.disabled = false;
+        toast('Envoi impossible : ' + (err && err.message || ''), true);
+      });
+    };
+    var resendInvite = $('#resendInvite');
+    if (resendInvite) resendInvite.onclick = function () {
+      resendInvite.disabled = true;
+      window.Store.auth.inviteClient(P().inviteEmail).then(function () {
+        toast('Invitation renvoyée à ' + P().inviteEmail);
+        resendInvite.disabled = false;
+      }).catch(function (err) {
+        resendInvite.disabled = false;
+        toast('Envoi impossible : ' + (err && err.message || ''), true);
+      });
+    };
 
     var utmList = $('#utmLinks');
     if (utmList) utmList.addEventListener('click', function (e) {
@@ -1080,6 +1121,7 @@
     $('#burger').innerHTML = ico('grid');
     $('#pickerBtn').insertAdjacentHTML('beforeend', ico('grid', 16));
     $('#newProfile').innerHTML = ico('plus', 18) + 'Nouveau profil client';
+    $('#newProfile').hidden = !IS_ADMIN;
     $('#signOut').innerHTML = ico('logout', 18) + 'Se déconnecter';
     $('#openPublic').innerHTML = ico('eye', 18) + 'Voir en ligne';
     $('#addLink').innerHTML = ico('plus', 18) + 'Ajouter un lien';
@@ -1126,7 +1168,7 @@
         '<div class="stack">' +
           '<div class="field"><label for="np-name">Nom du client</label><input class="input" id="np-name" placeholder="Maison Lune"></div>' +
           '<div class="field"><label for="np-slug">Identifiant public</label><input class="input" id="np-slug" placeholder="maison-lune"><span class="hint">Utilisé dans l’adresse de la page.</span></div>' +
-          '<div class="field"><label for="np-email">Email du client <span class="hint">(facultatif)</span></label><input class="input" id="np-email" type="email" placeholder="client@exemple.fr"><span class="hint">Le client pourra créer son propre compte avec cet email sur la page de connexion pour gérer ce profil lui-même.</span></div>' +
+          '<div class="field"><label for="np-email">Email du client <span class="hint">(facultatif)</span></label><input class="input" id="np-email" type="email" placeholder="client@exemple.fr"><span class="hint">Une invitation lui sera envoyée par email pour qu’il définisse son mot de passe et gère ce profil lui-même.</span></div>' +
           (Object.keys(D.profiles).length ? '<div class="field"><label for="np-copy">Partir de</label><select class="select" id="np-copy">' +
             '<option value="">Un profil vierge</option>' +
             Object.keys(D.profiles).map(function (k) { return '<option value="' + k + '">Une copie de ' + esc(D.profiles[k].name) + '</option>'; }).join('') +
@@ -1163,7 +1205,14 @@
         window.Store.saveProfile(prof).then(function (saved) {
           D.profiles[slug] = saved; D.active = slug;
           m.close(); TAB = 'design'; render();
-          toast(email ? 'Profil « ' + name + ' » créé — ' + email + ' peut créer son compte sur la page de connexion' : 'Profil « ' + name + ' » créé');
+          toast('Profil « ' + name + ' » créé');
+          if (email) {
+            window.Store.auth.inviteClient(email).then(function () {
+              toast('Invitation envoyée à ' + email);
+            }).catch(function (err) {
+              toast('Profil créé, mais l’invitation a échoué : ' + (err && err.message || ''), true);
+            });
+          }
         }).catch(function (err) {
           btn.disabled = false;
           toast('Création impossible : ' + (err && err.message || ''), true);
@@ -1217,8 +1266,8 @@
 
   function initApp(session) {
     if (!session) { location.href = 'login.html'; return; }
-    window.Store.load().then(function (data) {
-      D = data;
+    Promise.all([window.Store.load(), window.Store.auth.isAdmin()]).then(function (r) {
+      D = r[0]; IS_ADMIN = r[1];
       window.Store.onStatsUpdate(function () { if (D && (TAB === 'links' || TAB === 'stats')) render(); });
       window.Store.onLeadsUpdate(function () { paintLeadsBadge(); if (D && TAB === 'leads') render(); });
       boot(session);

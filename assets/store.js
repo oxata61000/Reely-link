@@ -117,13 +117,22 @@
 
   /* ---------- Authentification ---------- */
   function signIn(email, password) { return sb().auth.signInWithPassword({ email: email, password: password }); }
-  function signUp(email, password) { return sb().auth.signUp({ email: email, password: password }); }
   function signOut() { return sb().auth.signOut(); }
   function getSession() { return sb().auth.getSession().then(function (r) { return r.data.session; }); }
   function getUser() { return sb().auth.getUser().then(function (r) { return r.data.user; }); }
   function onAuthChange(fn) { sb().auth.onAuthStateChange(function (event, session) { fn(session); }); }
   function resetPassword(email, redirectTo) { return sb().auth.resetPasswordForEmail(email, { redirectTo: redirectTo }); }
   function updatePassword(password) { return sb().auth.updateUser({ password: password }); }
+  // Les comptes sont créés uniquement par invitation (admin) — plus d'auto-inscription publique.
+  function isAdmin() {
+    return sb().rpc('is_admin').then(function (res) { return !res.error && !!res.data; });
+  }
+  function inviteClient(email) {
+    return sb().functions.invoke('invite-client', { body: { email: email } }).then(function (res) {
+      if (res.error) throw new Error((res.data && res.data.error) || res.error.message);
+      return res.data;
+    });
+  }
 
   /* ---------- Fichiers (logo, photos de liens) ---------- */
   var MEDIA_BUCKET = 'media';
@@ -352,9 +361,10 @@
     isLive: isLive, slugify: slugify,
 
     auth: {
-      signIn: signIn, signUp: signUp, signOut: signOut,
+      signIn: signIn, signOut: signOut,
       getSession: getSession, getUser: getUser, onAuthChange: onAuthChange,
-      resetPassword: resetPassword, updatePassword: updatePassword
+      resetPassword: resetPassword, updatePassword: updatePassword,
+      isAdmin: isAdmin, inviteClient: inviteClient
     },
 
     load: load, getPublicProfile: getPublicProfile,
