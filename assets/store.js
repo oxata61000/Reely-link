@@ -220,7 +220,7 @@
   var statsCache = {}, statsLoading = {}, statsListeners = [];
   function onStatsUpdate(fn) { statsListeners.push(fn); }
   function notifyStats() { statsListeners.forEach(function (fn) { try { fn(); } catch (e) {} }); }
-  function emptyStats() { return { views: 0, clicks: 0, links: {}, days: {} }; }
+  function emptyStats() { return { views: 0, clicks: 0, links: {}, days: {}, sources: {} }; }
 
   function statsFor(profileId) {
     if (!profileId) return emptyStats();
@@ -230,7 +230,7 @@
 
   function refreshStats(profileId) {
     statsLoading[profileId] = true;
-    return sb().from('link_events').select('kind, link_id, created_at').eq('profile_id', profileId)
+    return sb().from('link_events').select('kind, link_id, created_at, source').eq('profile_id', profileId)
       .then(function (res) {
         statsLoading[profileId] = false;
         if (res.error) { console.warn(res.error); return; }
@@ -238,7 +238,11 @@
         (res.data || []).forEach(function (e) {
           var day = String(e.created_at).slice(0, 10);
           s.days[day] = s.days[day] || { views: 0, clicks: 0 };
-          if (e.kind === 'view') { s.views++; s.days[day].views++; }
+          if (e.kind === 'view') {
+            s.views++; s.days[day].views++;
+            var src = e.source || 'autre';
+            s.sources[src] = (s.sources[src] || 0) + 1;
+          }
           else { s.clicks++; s.days[day].clicks++; if (e.link_id) s.links[e.link_id] = (s.links[e.link_id] || 0) + 1; }
         });
         statsCache[profileId] = s;
@@ -254,10 +258,10 @@
     });
   }
 
-  function bump(profileId, kind, linkId) {
+  function bump(profileId, kind, linkId, source) {
     // Pas de télémétrie possible sur une page exportée en autonome (pas de SDK/config Supabase) : no-op silencieux.
     if (!profileId || !cfg || !global.supabase) return Promise.resolve();
-    return sb().from('link_events').insert({ profile_id: profileId, link_id: linkId || null, kind: kind })
+    return sb().from('link_events').insert({ profile_id: profileId, link_id: linkId || null, kind: kind, source: source || null })
       .then(function (res) { if (res.error) console.warn(res.error); });
   }
 
@@ -294,7 +298,7 @@
       name: [lead.firstName, lead.lastName].filter(Boolean).join(' '),
       first_name: lead.firstName || null, last_name: lead.lastName || null,
       email: lead.email, phone: lead.phone || null, transaction_type: lead.transactionType || null,
-      message: lead.message
+      message: lead.message, related_link_id: lead.linkId || null, source: lead.source || null
     }).then(function (res) { if (res.error) throw res.error; });
   }
 
@@ -311,6 +315,35 @@
   function deleteLead(leadId, scope) {
     return sb().from('leads').delete().eq('id', leadId)
       .then(function (res) { if (res.error) throw res.error; leadsCache = {}; return refreshLeads(scope); });
+  }
+
+  /* ---------- Notes internes (historique par contact) ---------- */
+  var notesCache = {}, notesLoading = {}, notesListeners = [];
+  function onNotesUpdate(fn) { notesListeners.push(fn); }
+  function notifyNotes() { notesListeners.forEach(function (fn) { try { fn(); } catch (e) {} }); }
+
+  function notesFor(leadId) {
+    if (!leadId) return [];
+    if (!notesCache[leadId] && !notesLoading[leadId]) refreshNotes(leadId);
+    return notesCache[leadId] || [];
+  }
+
+  function refreshNotes(leadId) {
+    notesLoading[leadId] = true;
+    return sb().from('lead_notes').select('*').eq('lead_id', leadId).order('created_at', { ascending: true })
+      .then(function (res) {
+        notesLoading[leadId] = false;
+        if (res.error) { console.warn(res.error); return; }
+        notesCache[leadId] = res.data || [];
+        notifyNotes();
+      });
+  }
+
+  function addNote(leadId, note) {
+    return getUser().then(function (user) {
+      return sb().from('lead_notes').insert({ lead_id: leadId, note: note, author_id: user && user.id })
+        .then(function (res) { if (res.error) throw res.error; return refreshNotes(leadId); });
+    });
   }
 
   global.Store = {
@@ -334,7 +367,8 @@
 
     bump: bump, statsFor: statsFor, resetStats: resetStats, onStatsUpdate: onStatsUpdate,
     leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, updateLeadStatus: updateLeadStatus,
-    deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate
+    deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate,
+    notesFor: notesFor, addNote: addNote, onNotesUpdate: onNotesUpdate
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.Store;
 })(typeof window !== 'undefined' ? window : this);

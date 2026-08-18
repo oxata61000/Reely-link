@@ -560,9 +560,24 @@
         }).join('') + '</div></div>' +
       '<div class="panel"><h3>Répartition par lien</h3><p class="hint">Le lien le plus cliqué mérite la première place.</p>' +
         '<div class="bars">' + bars + '</div></div>' +
+      '<div class="panel"><h3>Sources de trafic</h3><p class="hint">D’où viennent tes visiteurs (Instagram, Facebook…).</p>' +
+        '<div class="bars">' + sourceBars(st.sources) + '</div></div>' +
       '<div class="panel"><h3>Mesure côté serveur</h3><p class="hint">Ces chiffres sont mesurés côté serveur, tous visiteurs et tous appareils confondus.</p>' +
         '<div class="callout warn">' + ico('trash', 19) + '<span>Remettre les compteurs de ce profil à zéro.' +
         '<br><button class="btn btn-danger btn-sm" id="resetStats" style="margin-top:10px">Réinitialiser</button></span></div></div>';
+  }
+
+  function sourceBars(sources) {
+    var keys = Object.keys(sources || {});
+    if (!keys.length) return '<p class="hint">Pas encore assez de visites pour connaître la source.</p>';
+    var max = Math.max.apply(null, keys.map(function (k) { return sources[k]; }));
+    var labels = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', google: 'Google', direct: 'Accès direct', autre: 'Autre' };
+    return keys.sort(function (a, b) { return sources[b] - sources[a]; }).map(function (k) {
+      var v = sources[k];
+      return '<div class="bar-row"><div><div class="bar-label truncate">' + esc(labels[k] || k) + '</div>' +
+        '<div class="bar-track"><i class="bar-fill" style="width:' + (v / max * 100) + '%;display:block"></i></div></div>' +
+        '<div class="bar-val">' + v + '</div></div>';
+    }).join('');
   }
 
   function wireStats() {
@@ -579,7 +594,9 @@
      Onglet CONTACTS (leads du formulaire public)
      ============================================================ */
   var LEADS_SCOPE = '*';
+  var LEADS_SEARCH = '';
   var TX_LABELS = { achat: 'Achat', vente: 'Vente', location: 'Location' };
+  var SOURCE_LABELS = { instagram: 'Instagram', facebook: 'Facebook', tiktok: 'TikTok', google: 'Google', direct: 'Direct' };
   var STATUS_COLS = [
     { key: 'new', label: 'Nouveau' },
     { key: 'contacted', label: 'Contacté' },
@@ -587,19 +604,37 @@
     { key: 'lost', label: 'Perdu' }
   ];
 
+  function findLinkTitle(linkId) {
+    if (!linkId || !D) return '';
+    for (var k in D.profiles) {
+      var l = (D.profiles[k].links || []).filter(function (x) { return x.id === linkId; })[0];
+      if (l) return l.title;
+    }
+    return '';
+  }
+
+  function matchesSearch(l, q) {
+    if (!q) return true;
+    var hay = [l.first_name, l.last_name, l.name, l.email, l.phone, l.message].filter(Boolean).join(' ').toLowerCase();
+    return hay.indexOf(q.toLowerCase()) !== -1;
+  }
+
   function tabLeads() {
-    var scopePicker = '<div class="field" style="max-width:320px;margin-bottom:18px">' +
-      '<label for="leadsScope">Profil</label><select class="select" id="leadsScope">' +
+    var header = '<div class="inline" style="flex-wrap:wrap;gap:12px;margin-bottom:18px;align-items:flex-end">' +
+      '<div class="field" style="max-width:260px"><label for="leadsScope">Profil</label><select class="select" id="leadsScope">' +
         '<option value="*"' + (LEADS_SCOPE === '*' ? ' selected' : '') + '>Tous les profils</option>' +
         Object.keys(D.profiles).map(function (k) {
           var p = D.profiles[k];
           return '<option value="' + esc(p.id) + '"' + (LEADS_SCOPE === p.id ? ' selected' : '') + '>' + esc(p.name) + '</option>';
         }).join('') +
-      '</select></div>';
+      '</select></div>' +
+      '<div class="field" style="max-width:260px"><label for="leadsSearch">Rechercher</label><input class="input" id="leadsSearch" placeholder="Nom, email, message…" value="' + esc(LEADS_SEARCH) + '"></div>' +
+      '<button class="btn btn-ghost btn-sm" id="exportLeadsCsv">' + ico('download', 18) + 'Exporter en CSV</button>' +
+    '</div>';
 
-    var leads = window.Store.leadsFor(LEADS_SCOPE);
+    var leads = window.Store.leadsFor(LEADS_SCOPE).filter(function (l) { return matchesSearch(l, LEADS_SEARCH); });
     if (!leads.length) {
-      return scopePicker + '<div class="empty"><p>Aucun message reçu pour l’instant.</p>' +
+      return header + '<div class="empty"><p>Aucun message ne correspond.</p>' +
         '<p class="hint" style="margin-top:6px">Les demandes envoyées via le formulaire de contact de la page publique apparaîtront ici.</p></div>';
     }
 
@@ -613,7 +648,7 @@
       '</div>';
     }).join('') + '</div>';
 
-    return scopePicker + board;
+    return header + board;
   }
 
   function leadCardHtml(l) {
@@ -623,23 +658,83 @@
     var tx = l.transaction_type && TX_LABELS[l.transaction_type]
       ? '<span class="tag-mini">' + TX_LABELS[l.transaction_type] + '</span>' : '';
     var client = (LEADS_SCOPE === '*' && l.profiles) ? '<span class="tag-mini">' + esc(l.profiles.name) + '</span>' : '';
+    var src = l.source && SOURCE_LABELS[l.source]
+      ? '<span class="tag-mini ok">' + SOURCE_LABELS[l.source] + '</span>' : '';
+    var propTitle = findLinkTitle(l.related_link_id);
     var status = l.status || 'new';
     return '<div class="kanban-card" draggable="true" data-id="' + esc(l.id) + '">' +
-      '<div class="kanban-card-top"><b>' + esc(name) + '</b>' + tx + client + '</div>' +
+      '<div class="kanban-card-top"><b>' + esc(name) + '</b>' + tx + src + client + '</div>' +
       '<div class="hint">' + esc(meta) + '</div>' +
       '<div class="hint">' + date + '</div>' +
+      (propTitle ? '<div class="hint">Via : ' + esc(propTitle) + '</div>' : '') +
       (l.message ? '<p class="t-body clamp-2" style="margin-top:6px">' + esc(l.message) + '</p>' : '') +
       '<div class="kanban-card-actions">' +
         '<select class="select" data-act="status" style="min-height:34px;font-size:12.5px">' +
           STATUS_COLS.map(function (col) { return '<option value="' + col.key + '"' + (col.key === status ? ' selected' : '') + '>' + col.label + '</option>'; }).join('') +
         '</select>' +
+        '<button class="btn-icon" data-act="detail" aria-label="Détails">' + ico('chat', 18) + '</button>' +
         '<button class="btn-icon" data-act="del" aria-label="Supprimer">' + ico('trash', 18) + '</button>' +
       '</div></div>';
+  }
+
+  function csvEscape(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+
+  function exportLeadsCsv() {
+    var leads = window.Store.leadsFor(LEADS_SCOPE).filter(function (l) { return matchesSearch(l, LEADS_SEARCH); });
+    var header = ['Client', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Type', 'Statut', 'Source', 'Bien', 'Message', 'Date'];
+    var rows = leads.map(function (l) {
+      return [
+        LEADS_SCOPE === '*' && l.profiles ? l.profiles.name : '',
+        l.first_name || '', l.last_name || '', l.email || '', l.phone || '',
+        TX_LABELS[l.transaction_type] || '', STATUS_COLS.filter(function (c) { return c.key === (l.status || 'new'); })[0].label,
+        SOURCE_LABELS[l.source] || l.source || '', findLinkTitle(l.related_link_id),
+        l.message || '', new Date(l.created_at).toLocaleString('fr-FR')
+      ].map(csvEscape).join(',');
+    });
+    dl([header.map(csvEscape).join(','), rows.join('\n')].join('\n'), 'contacts.csv', 'text/csv');
+  }
+
+  function openLeadDetail(lead) {
+    var name = [lead.first_name, lead.last_name].filter(Boolean).join(' ') || lead.name || 'Sans nom';
+    var propTitle = findLinkTitle(lead.related_link_id);
+    var m = modal(name,
+      '<div class="stack">' +
+        '<p class="t-body">' + esc(lead.email) + (lead.phone ? ' · ' + esc(lead.phone) : '') + '</p>' +
+        (propTitle ? '<p class="hint">Bien concerné : ' + esc(propTitle) + '</p>' : '') +
+        (lead.source ? '<p class="hint">Source : ' + esc(SOURCE_LABELS[lead.source] || lead.source) + '</p>' : '') +
+        '<p class="t-body" style="white-space:pre-wrap;background:var(--surface-low);padding:12px;border-radius:var(--r-md)">' + esc(lead.message || '') + '</p>' +
+        '<div><h3 class="t-head-sm" style="margin-bottom:8px">Notes internes</h3><div id="notesList" class="stack"></div></div>' +
+        '<div class="inline"><textarea class="textarea" id="noteInput" placeholder="Ajouter une note…" style="min-height:60px"></textarea>' +
+        '<button class="btn btn-primary btn-sm" id="addNoteBtn">Ajouter</button></div>' +
+      '</div>',
+      '<span class="spacer"></span><button class="btn btn-quiet btn-sm" data-close>Fermer</button>');
+
+    function paintNotes() {
+      var notes = window.Store.notesFor(lead.id);
+      $('#notesList', m.node).innerHTML = notes.length
+        ? notes.map(function (n) {
+            return '<div class="panel" style="padding:12px;margin:0"><p class="t-body">' + esc(n.note) + '</p>' +
+              '<p class="hint" style="margin-top:4px">' + new Date(n.created_at).toLocaleString('fr-FR') + '</p></div>';
+          }).join('')
+        : '<p class="hint">Aucune note pour l’instant.</p>';
+    }
+    window.Store.onNotesUpdate(paintNotes);
+    paintNotes();
+
+    $('#addNoteBtn', m.node).onclick = function () {
+      var ta = $('#noteInput', m.node);
+      var v = ta.value.trim(); if (!v) return;
+      window.Store.addNote(lead.id, v).then(function () { ta.value = ''; });
+    };
   }
 
   function wireLeads() {
     var scope = $('#leadsScope');
     if (scope) scope.addEventListener('change', function () { LEADS_SCOPE = scope.value; render(); });
+    var search = $('#leadsSearch');
+    if (search) search.addEventListener('input', function () { LEADS_SEARCH = search.value; render(); });
+    var exp = $('#exportLeadsCsv');
+    if (exp) exp.onclick = exportLeadsCsv;
 
     var board = $('#kanbanBoard'); if (!board) return;
     var dragId = null;
@@ -681,11 +776,20 @@
     });
 
     board.addEventListener('click', function (e) {
-      var b = e.target.closest('[data-act="del"]'); if (!b) return;
-      var id = b.closest('.kanban-card').getAttribute('data-id');
-      confirmBox('Supprimer', 'Ce message sera définitivement supprimé.', function () {
-        window.Store.deleteLead(id, LEADS_SCOPE).then(function () { render(); toast('Message supprimé'); });
-      }, true);
+      var del = e.target.closest('[data-act="del"]');
+      if (del) {
+        var delId = del.closest('.kanban-card').getAttribute('data-id');
+        confirmBox('Supprimer', 'Ce message sera définitivement supprimé.', function () {
+          window.Store.deleteLead(delId, LEADS_SCOPE).then(function () { render(); toast('Message supprimé'); });
+        }, true);
+        return;
+      }
+      var detailBtn = e.target.closest('[data-act="detail"]');
+      var card = e.target.closest('.kanban-card');
+      if (detailBtn && card) {
+        var lead = leadById(card.getAttribute('data-id'));
+        if (lead) openLeadDetail(lead);
+      }
     });
   }
 

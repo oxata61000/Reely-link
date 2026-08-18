@@ -14,6 +14,22 @@
   var isPreview = qs.get('preview') === '1';
   var root = document.getElementById('app');
   var P = null;
+  var lastClickedLinkId = null;
+
+  /* ---------- Source de trafic (Instagram, Facebook, ...) ---------- */
+  function detectSource() {
+    var utm = qs.get('utm_source');
+    if (utm) return utm.toLowerCase();
+    var ref = '';
+    try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) {}
+    if (/instagram\.com/i.test(ref)) return 'instagram';
+    if (/facebook\.com|fb\.com|l\.facebook/i.test(ref)) return 'facebook';
+    if (/tiktok\.com/i.test(ref)) return 'tiktok';
+    if (/google\./i.test(ref)) return 'google';
+    if (!ref) return 'direct';
+    return ref;
+  }
+  var PAGE_SOURCE = detectSource();
 
   /* ---------- Résolution du profil ---------- */
   function resolve() {
@@ -85,7 +101,7 @@
   /* ---------- Suivi des clics ---------- */
   function track(kind, link) {
     if (isPreview) return;
-    try { window.Store.bump(P.id, kind, link && link.id); } catch (e) {}
+    try { window.Store.bump(P.id, kind, link && link.id, PAGE_SOURCE); } catch (e) {}
     var name = kind === 'view' ? 'pageview' : 'link_click';
     var props = link ? { link: link.title, url: link.url } : {};
     if (window.plausible) window.plausible(name, { props: props });
@@ -334,6 +350,7 @@
     if (a) {
       var id = a.getAttribute('data-id');
       var link = (P.links || []).filter(function (l) { return l.id === id; })[0];
+      if (link && link.type === 'link') lastClickedLinkId = link.id;
       track('click', link);
       if (isPreview) e.preventDefault();
       return;
@@ -382,7 +399,8 @@
     var lead = {
       firstName: fd.get('firstName'), lastName: fd.get('lastName'),
       email: fd.get('email'), phone: fd.get('phone') || '',
-      transactionType: fd.get('transactionType') || '', message: fd.get('message')
+      transactionType: fd.get('transactionType') || '', message: fd.get('message'),
+      linkId: lastClickedLinkId, source: PAGE_SOURCE
     };
     status.textContent = 'Envoi en cours…'; status.style.color = '';
     window.Store.addLead(P.id, lead).then(function () {
