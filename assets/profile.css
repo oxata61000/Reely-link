@@ -207,6 +207,8 @@ body.profile {
 .p-dock button:hover { background: var(--surface-container); color: var(--primary); transform: translateY(-2px); }
 .p-dock .dock-cta { width: auto; padding: 0 18px; background: var(--primary); color: #fff; font-size: 14px; font-weight: 600; gap: 8px; display: inline-flex; align-items: center; }
 .p-dock .dock-cta:hover { background: var(--primary-container); color: #fff; }
+.p-dock .dock-cta-wa { background: #25D366; }
+.p-dock .dock-cta-wa:hover { background: #1ebe5a; }
 
 /* --- Modale (partage / QR) --- */
 .sheet-backdrop {

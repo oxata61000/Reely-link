@@ -1,0 +1,6 @@
+# Adresses propres pour un futur domaine perso : tondomaine.fr/nom-du-client
+# au lieu de tondomaine.fr/index.html?u=nom-du-client. Les fichiers réels
+# (admin.html, login.html, assets/…) sont toujours servis en priorité par
+# Netlify, cette règle ne s'applique qu'aux chemins qui ne correspondent à
+# aucun fichier.
+/:slug  /index.html?u=:slug  200

@@ -32,9 +32,18 @@
   var PAGE_SOURCE = detectSource();
 
   /* ---------- Résolution du profil ---------- */
+  // Support d'un futur domaine perso (tondomaine.fr/slug) en plus de
+  // l'adresse actuelle (?u=slug) : voir _redirects à la racine du site.
+  function slugFromPath() {
+    var seg = location.pathname.replace(/^\/+/, '').split('/')[0];
+    if (!seg || /\.[a-z0-9]+$/i.test(seg)) return '';
+    if (['admin', 'login'].indexOf(seg.toLowerCase()) !== -1) return '';
+    return seg;
+  }
+
   function resolve() {
     if (window.REELY_PROFILE) return Promise.resolve(window.REELY_PROFILE);
-    var slug = qs.get('u');
+    var slug = qs.get('u') || slugFromPath();
     if (!slug) return Promise.resolve(null);
     return window.Store.getPublicProfile(slug);
   }
@@ -243,8 +252,13 @@
     return bits.length ? '<footer class="p-foot"><p class="t-label">' + bits.join(' · ') + '</p></footer>' : '';
   }
 
+  function waDigits(v) { return String(v || '').replace(/[^0-9]/g, ''); }
+
   function renderDock() {
     var c = P.contact || {};
+    var wa = c.whatsapp
+      ? '<button class="dock-cta dock-cta-wa" data-act="whatsapp" aria-label="Écrire sur WhatsApp">' + ICONS.svg('whatsapp', 18) + 'WhatsApp</button>'
+      : '';
     var cta = c.email
       ? '<button class="dock-cta" data-act="contact">' + ICONS.svg('mail', 18) + 'Contact</button>'
       : '';
@@ -252,7 +266,7 @@
       '<button data-act="share" aria-label="Partager ce profil" title="Partager">' + ICONS.svg('share', 20) + '</button>' +
       '<button data-act="qr" aria-label="Afficher le QR code" title="QR code">' + ICONS.svg('qr', 20) + '</button>' +
       '<button data-act="vcard" aria-label="Ajouter aux contacts" title="Ajouter aux contacts">' + ICONS.svg('contact', 20) + '</button>' +
-      cta +
+      wa + cta +
     '</div>';
   }
 
@@ -365,6 +379,13 @@
         var card = document.getElementById('contactCard');
         if (card) { openContact(true); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         else location.href = 'mailto:' + (P.contact.email || '');
+      }
+      else if (act === 'whatsapp') {
+        var num = waDigits(P.contact && P.contact.whatsapp);
+        if (!num) return;
+        track('click', { id: null, title: 'WhatsApp' });
+        var msg = 'Bonjour, je vous contacte depuis votre page ' + P.name + '.';
+        window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
       }
     }
   });

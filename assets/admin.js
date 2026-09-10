@@ -884,6 +884,9 @@
         '<div class="field"><label for="s-email">Email</label><input class="input" id="s-email" type="email" value="' + esc(c.email || '') + '"></div>' +
         '<div class="field"><label for="s-phone">Téléphone</label><input class="input" id="s-phone" value="' + esc(c.phone || '') + '"></div>' +
       '</div>' +
+      '<div class="field" style="margin-top:12px"><label for="s-whatsapp">WhatsApp <span class="hint">(facultatif)</span></label>' +
+        '<input class="input" id="s-whatsapp" value="' + esc(c.whatsapp || '') + '" placeholder="+33612345678">' +
+        '<span class="hint">Format international avec indicatif. Ajoute un bouton WhatsApp bien visible dans la barre d’actions, avec un message pré-rempli.</span></div>' +
       '<div class="row-toggle"><div><p>Afficher l’email en pied de page</p><small>Visible publiquement sur la page, en plus de servir aux notifications.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-showEmail"' + (c.showEmail !== false ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row-toggle"><div><p>Afficher le téléphone en pied de page</p><small>Décochez pour le garder privé (utilisable quand même en interne).</small></div>' +
@@ -925,6 +928,7 @@
     function bind(id, fn) { var n = $('#' + id); if (n) n.addEventListener('input', function () { fn(n); persist(); }); }
     bind('s-email', function (n) { P().contact.email = n.value.trim(); });
     bind('s-phone', function (n) { P().contact.phone = n.value.trim(); });
+    bind('s-whatsapp', function (n) { P().contact.whatsapp = n.value.trim(); });
     bind('s-showEmail', function (n) { P().contact.showEmail = n.checked; });
     bind('s-showPhone', function (n) { P().contact.showPhone = n.checked; });
     bind('s-form', function (n) { P().contact.showForm = n.checked; });
