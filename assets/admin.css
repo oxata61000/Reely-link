@@ -176,9 +176,9 @@ body.admin { background: var(--surface); }
 .panel-chevron { flex: none; display: grid; place-items: center; color: var(--tertiary); transition: transform .25s var(--ease); }
 .panel-chevron svg { width: 16px; height: 16px; display: block; }
 .panel.is-open .panel-chevron { transform: rotate(90deg); }
-.panel-body-wrap { display: grid; grid-template-rows: 0fr; transition: grid-template-rows .3s var(--ease); }
+.panel-body-wrap { display: grid; grid-template-rows: 0fr; min-height: 0; transition: grid-template-rows .3s var(--ease); }
 .panel.is-open .panel-body-wrap { grid-template-rows: 1fr; }
-.panel-body { overflow: hidden; padding: 0 22px 22px; }
+.panel-body { overflow: hidden; min-height: 0; padding: 0 22px 22px; }
 .panel-body > .hint:first-child { margin-top: -6px; }
 .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 @media (max-width: 640px) { .grid2 { grid-template-columns: 1fr; } }
