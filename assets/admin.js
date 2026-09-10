@@ -724,8 +724,8 @@
     var date = new Date(l.created_at).toLocaleString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
     var name = [l.first_name, l.last_name].filter(Boolean).join(' ') || l.name || 'Sans nom';
     var meta = [l.email, l.phone].filter(Boolean).join(' · ');
-    var tx = l.transaction_type && TX_LABELS[l.transaction_type]
-      ? '<span class="tag-mini">' + TX_LABELS[l.transaction_type] + '</span>' : '';
+    var tx = l.transaction_type
+      ? '<span class="tag-mini">' + esc(TX_LABELS[l.transaction_type] || l.transaction_type) + '</span>' : '';
     var client = (LEADS_SCOPE === '*' && l.profiles) ? '<span class="tag-mini">' + esc(l.profiles.name) + '</span>' : '';
     var src = l.source && SOURCE_LABELS[l.source]
       ? '<span class="tag-mini ok">' + SOURCE_LABELS[l.source] + '</span>' : '';
@@ -759,7 +759,7 @@
       return [
         LEADS_SCOPE === '*' && l.profiles ? l.profiles.name : '',
         l.first_name || '', l.last_name || '', l.email || '', l.phone || '',
-        TX_LABELS[l.transaction_type] || '', STATUS_COLS.filter(function (c) { return c.key === (l.status || 'new'); })[0].label,
+        TX_LABELS[l.transaction_type] || l.transaction_type || '', STATUS_COLS.filter(function (c) { return c.key === (l.status || 'new'); })[0].label,
         SOURCE_LABELS[l.source] || l.source || '', findLinkTitle(l.related_link_id),
         l.message || '', new Date(l.created_at).toLocaleString('fr-FR')
       ].map(csvEscape).join(',');
@@ -877,6 +877,8 @@
      ============================================================ */
   function tabSettings() {
     var c = P().contact || {}, a = P().analytics || {}, s = P().seo || {};
+    var ff = c.formFields || {};
+    function ffOn(k) { return ff[k] !== false; }
     return '' +
     '<div class="panel"><h3>Adresse publique</h3><p class="hint">L’identifiant sert d’adresse : <code>index.html?u=' + esc(P().slug) + '</code></p>' +
       '<div class="field"><label for="s-slug">Identifiant</label><input class="input" id="s-slug" value="' + esc(P().slug) + '"></div>' +
@@ -930,9 +932,21 @@
         '<label class="switch"><input type="checkbox" id="s-showPhone"' + (c.showPhone !== false ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row-toggle"><div><p>Afficher le formulaire de contact</p><small>Vignette « Nous contacter » en bas de page, qui se déplie au clic. Les messages arrivent dans l’onglet Contacts.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-form"' + (c.showForm ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="row-toggle"><div><p>Bouton « Nous écrire » en haut de page</p><small>À côté des boutons WhatsApp, pour retrouver le formulaire sans défiler tous les liens.</small></div>' +
+        '<label class="switch"><input type="checkbox" id="s-formCta"' + (c.formCta !== false ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="field" style="margin-top:12px"><label for="s-endpoint">Copier aussi vers <span class="hint">(facultatif)</span></label>' +
         '<input class="input" id="s-endpoint" value="' + esc(c.endpoint || '') + '" placeholder="https://formspree.io/f/xxxx">' +
         '<span class="hint">Chaque message est enregistré dans l’onglet Contacts. Renseignez une adresse ici pour recevoir aussi une copie via un service externe (Formspree, Zapier…).</span></div></div>' +
+
+    '<div class="panel"><h3>Champs du formulaire</h3><p class="hint">Activez uniquement ce dont vous avez besoin — utile pour les activités hors immobilier.</p>' +
+      ['firstName:Prénom', 'lastName:Nom', 'email:Email', 'phone:Téléphone', 'message:Contexte / message'].map(function (f) {
+        var v = f.split(':');
+        return '<div class="row-toggle"><p>' + v[1] + '</p><label class="switch"><input type="checkbox" data-ff="' + v[0] + '"' + (ffOn(v[0]) ? ' checked' : '') + '><span></span></label></div>';
+      }).join('') +
+      '<div class="row-toggle"><p>Champ « Vous êtes en... »</p><label class="switch"><input type="checkbox" data-ff="txType"' + (ffOn('txType') ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="field" id="s-txOptionsRow"' + (ffOn('txType') ? '' : ' hidden') + '><label for="s-txOptions">Choix proposés</label>' +
+        '<input class="input" id="s-txOptions" value="' + esc((c.txOptions || ['Achat', 'Vente', 'Location']).join(', ')) + '" placeholder="Achat, Vente, Location">' +
+        '<span class="hint">Séparés par des virgules — remplacez par ce qui correspond à l’activité (ex. Réservation, Devis, Partenariat).</span></div></div>' +
 
     '<div class="panel"><h3>Référencement &amp; partage</h3><p class="hint">Ce qui s’affiche quand on partage le lien sur WhatsApp, LinkedIn ou en message privé.</p>' +
       '<div class="stack">' +
@@ -986,7 +1000,20 @@
     bind('s-showEmail', function (n) { P().contact.showEmail = n.checked; });
     bind('s-showPhone', function (n) { P().contact.showPhone = n.checked; });
     bind('s-form', function (n) { P().contact.showForm = n.checked; });
+    bind('s-formCta', function (n) { P().contact.formCta = n.checked; });
     bind('s-endpoint', function (n) { P().contact.endpoint = n.value.trim(); });
+    bind('s-txOptions', function (n) {
+      P().contact.txOptions = n.value.split(',').map(function (v) { return v.trim(); }).filter(Boolean);
+    });
+    $$('[data-ff]').forEach(function (n) {
+      n.addEventListener('input', function () {
+        var key = n.getAttribute('data-ff');
+        if (!P().contact.formFields) P().contact.formFields = {};
+        P().contact.formFields[key] = n.checked;
+        if (key === 'txType') { var row = $('#s-txOptionsRow'); if (row) row.hidden = !n.checked; }
+        persist();
+      });
+    });
     bind('s-title', function (n) { P().seo.title = n.value; });
     bind('s-desc', function (n) { P().seo.description = n.value; });
     bind('s-image', function (n) { P().seo.image = n.value.trim(); });

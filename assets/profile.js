@@ -210,6 +210,33 @@
   function renderContact() {
     var c = P.contact || {};
     if (!c.showForm) return '';
+    var ff = c.formFields || {};
+    var on = function (k) { return ff[k] !== false; };
+    var txOptions = (c.txOptions && c.txOptions.length) ? c.txOptions : ['Achat', 'Vente', 'Location'];
+
+    var rows = '';
+    if (on('firstName') || on('lastName')) {
+      rows += '<div class="p-form-row">' +
+        (on('firstName') ? '<div class="field"><label for="cf-first">Prénom</label><input class="input" id="cf-first" name="firstName" required placeholder="Camille"></div>' : '') +
+        (on('lastName') ? '<div class="field"><label for="cf-last">Nom</label><input class="input" id="cf-last" name="lastName" required placeholder="Dupont"></div>' : '') +
+      '</div>';
+    }
+    if (on('email') || on('phone')) {
+      rows += '<div class="p-form-row">' +
+        (on('email') ? '<div class="field"><label for="cf-mail">Email</label><input class="input" id="cf-mail" name="email" type="email" required placeholder="camille@exemple.fr"></div>' : '') +
+        (on('phone') ? '<div class="field"><label for="cf-phone">Téléphone</label><input class="input" id="cf-phone" name="phone" type="tel" placeholder="06 12 34 56 78"></div>' : '') +
+      '</div>';
+    }
+    if (on('txType')) {
+      rows += '<div class="field"><label for="cf-type">Vous êtes en...</label><select class="select" id="cf-type" name="transactionType">' +
+        '<option value="">Sélectionnez</option>' +
+        txOptions.map(function (o) { return '<option value="' + esc(o) + '">' + esc(o) + '</option>'; }).join('') +
+      '</select></div>';
+    }
+    if (on('message')) {
+      rows += '<div class="field"><label for="cf-msg">Contexte</label><textarea class="textarea" id="cf-msg" name="message" required placeholder="Parlez-nous de votre projet…"></textarea></div>';
+    }
+
     return '<div class="p-contact-card" id="contactCard">' +
       '<button class="p-contact-trigger" type="button" data-act="toggle-contact" aria-expanded="false" aria-controls="contactPanel">' +
         '<span class="p-ico">' + ICONS.svg('mail', 26) + '</span>' +
@@ -222,21 +249,7 @@
       '<div class="p-contact-panel" id="contactPanel">' +
         '<div><form class="p-form" id="contactForm" novalidate>' +
           '<div class="p-hp" aria-hidden="true"><label for="cf-orgnote">Ne pas remplir</label><input id="cf-orgnote" name="org_note" tabindex="-1" autocomplete="off"></div>' +
-          '<div class="p-form-row">' +
-            '<div class="field"><label for="cf-first">Prénom</label><input class="input" id="cf-first" name="firstName" required placeholder="Camille"></div>' +
-            '<div class="field"><label for="cf-last">Nom</label><input class="input" id="cf-last" name="lastName" required placeholder="Dupont"></div>' +
-          '</div>' +
-          '<div class="p-form-row">' +
-            '<div class="field"><label for="cf-mail">Email</label><input class="input" id="cf-mail" name="email" type="email" required placeholder="camille@exemple.fr"></div>' +
-            '<div class="field"><label for="cf-phone">Téléphone</label><input class="input" id="cf-phone" name="phone" type="tel" placeholder="06 12 34 56 78"></div>' +
-          '</div>' +
-          '<div class="field"><label for="cf-type">Vous êtes en...</label><select class="select" id="cf-type" name="transactionType">' +
-            '<option value="">Sélectionnez</option>' +
-            '<option value="achat">Achat</option>' +
-            '<option value="vente">Vente</option>' +
-            '<option value="location">Location</option>' +
-          '</select></div>' +
-          '<div class="field"><label for="cf-msg">Contexte</label><textarea class="textarea" id="cf-msg" name="message" required placeholder="Parlez-nous de votre projet…"></textarea></div>' +
+          rows +
           '<button class="btn btn-primary btn-block" type="submit">Envoyer' + ICONS.svg('arrowRight', 20) + '</button>' +
           '<p class="hint" id="cf-status" role="status" aria-live="polite"></p>' +
         '</form></div>' +
@@ -254,18 +267,24 @@
 
   function waDigits(v) { return String(v || '').replace(/[^0-9]/g, ''); }
 
-  /* ---------- Boutons rapides WhatsApp (visite / estimation) ---------- */
+  /* ---------- Boutons rapides (WhatsApp + accès direct au formulaire) ---------- */
   function renderCtaRow() {
     var c = P.contact || {};
-    if (!c.whatsapp) return '';
     var btns = [];
-    if (c.waVisitOn) btns.push({ act: 'wa-visit', label: c.waVisitLabel || 'Demander une visite' });
-    if (c.waSellOn) btns.push({ act: 'wa-sell', label: c.waSellLabel || 'Estimer mon bien' });
-    if (!btns.length) btns.push({ act: 'whatsapp', label: 'WhatsApp' });
-    return '<div class="p-cta-row">' + btns.map(function (b) {
+    if (c.whatsapp) {
+      if (c.waVisitOn) btns.push({ act: 'wa-visit', label: c.waVisitLabel || 'Demander une visite' });
+      if (c.waSellOn) btns.push({ act: 'wa-sell', label: c.waSellLabel || 'Estimer mon bien' });
+      if (!c.waVisitOn && !c.waSellOn) btns.push({ act: 'whatsapp', label: 'WhatsApp' });
+    }
+    var html = btns.map(function (b) {
       return '<button class="p-cta-btn" data-act="' + b.act + '">' +
         '<span class="p-cta-ico">' + ICONS.svg('whatsapp', 16) + '</span><span>' + esc(b.label) + '</span></button>';
-    }).join('') + '</div>';
+    }).join('');
+    if (c.showForm && c.formCta !== false) {
+      html += '<button class="p-cta-btn p-cta-btn-outline" data-act="contact">' +
+        '<span class="p-cta-ico p-cta-ico-outline">' + ICONS.svg('mail', 16) + '</span><span>Nous écrire</span></button>';
+    }
+    return html ? '<div class="p-cta-row">' + html + '</div>' : '';
   }
 
   function renderDock() {
@@ -418,7 +437,9 @@
     var form = e.target;
     var status = document.getElementById('cf-status');
     var fd = new FormData(form);
-    if (!fd.get('firstName') || !fd.get('lastName') || !fd.get('email') || !fd.get('message')) {
+    var ff = (P.contact && P.contact.formFields) || {};
+    var required = ['firstName', 'lastName', 'email', 'message'].filter(function (k) { return ff[k] !== false; });
+    if (required.some(function (k) { return !fd.get(k); })) {
       status.textContent = 'Merci de remplir tous les champs obligatoires.'; status.style.color = 'var(--error)'; return;
     }
     // Anti-spam silencieux : uniquement le champ piège (les remplisseurs automatiques
@@ -428,9 +449,9 @@
       return;
     }
     var lead = {
-      firstName: fd.get('firstName'), lastName: fd.get('lastName'),
-      email: fd.get('email'), phone: fd.get('phone') || '',
-      transactionType: fd.get('transactionType') || '', message: fd.get('message'),
+      firstName: fd.get('firstName') || '', lastName: fd.get('lastName') || '',
+      email: fd.get('email') || '', phone: fd.get('phone') || '',
+      transactionType: fd.get('transactionType') || '', message: fd.get('message') || '',
       linkId: lastClickedLinkId, source: PAGE_SOURCE
     };
     status.textContent = 'Envoi en cours…'; status.style.color = '';

@@ -74,6 +74,12 @@ body.profile {
   background: #fff; color: #25D366; flex: none;
 }
 .p-cta-ico svg { width: 17px; height: 17px; }
+.p-cta-btn-outline {
+  background: var(--surface-lowest); color: var(--on-surface); border: 1.5px solid var(--outline-variant);
+  box-shadow: none;
+}
+.p-cta-btn-outline:hover { background: var(--surface-container); box-shadow: none; }
+.p-cta-ico-outline { background: var(--primary); color: #fff; }
 
 /* --- Liens --- */
 .p-links { display: flex; flex-direction: column; gap: 14px; margin-top: 40px; }
