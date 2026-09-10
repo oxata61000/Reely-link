@@ -913,13 +913,17 @@
         '<input class="input" id="s-whatsapp" value="' + esc(c.whatsapp || '') + '" placeholder="+33612345678">' +
         '<span class="hint">Format international avec indicatif. Active les boutons rapides ci-dessous, bien visibles en haut de la page.</span></div>' +
 
-      '<div class="row-toggle" style="margin-top:14px"><div><p>Bouton « Demander une visite »</p><small>Ouvre WhatsApp avec un message pré-rempli.</small></div>' +
+      '<div class="row-toggle" style="margin-top:14px"><div><p>Bouton rapide n°1</p><small>Par défaut « Demander une visite » — modifiable pour tout type d’activité.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-waVisitOn"' + (c.waVisitOn ? ' checked' : '') + '><span></span></label></div>' +
-      '<div class="field" id="s-waVisitMsgRow"' + (c.waVisitOn ? '' : ' hidden') + '><textarea class="textarea" id="s-waVisitMsg" placeholder="Bonjour, je souhaite organiser une visite. Pouvez-vous me recontacter ?">' + esc(c.waVisitMsg || '') + '</textarea></div>' +
+      '<div class="field" id="s-waVisitMsgRow"' + (c.waVisitOn ? '' : ' hidden') + ' style="display:grid;gap:8px">' +
+        '<input class="input" id="s-waVisitLabel" value="' + esc(c.waVisitLabel || '') + '" placeholder="Demander une visite">' +
+        '<textarea class="textarea" id="s-waVisitMsg" placeholder="Bonjour, je souhaite organiser une visite. Pouvez-vous me recontacter ?">' + esc(c.waVisitMsg || '') + '</textarea></div>' +
 
-      '<div class="row-toggle"><div><p>Bouton « Estimer mon bien »</p><small>Pour les prospects vendeurs — message pré-rempli différent.</small></div>' +
+      '<div class="row-toggle"><div><p>Bouton rapide n°2</p><small>Par défaut « Estimer mon bien » — modifiable pour tout type d’activité.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-waSellOn"' + (c.waSellOn ? ' checked' : '') + '><span></span></label></div>' +
-      '<div class="field" id="s-waSellMsgRow"' + (c.waSellOn ? '' : ' hidden') + '><textarea class="textarea" id="s-waSellMsg" placeholder="Bonjour, je souhaite faire estimer mon bien en vue d’une mise en vente. Pouvez-vous me recontacter ?">' + esc(c.waSellMsg || '') + '</textarea></div>' +
+      '<div class="field" id="s-waSellMsgRow"' + (c.waSellOn ? '' : ' hidden') + ' style="display:grid;gap:8px">' +
+        '<input class="input" id="s-waSellLabel" value="' + esc(c.waSellLabel || '') + '" placeholder="Estimer mon bien">' +
+        '<textarea class="textarea" id="s-waSellMsg" placeholder="Bonjour, je souhaite faire estimer mon bien en vue d’une mise en vente. Pouvez-vous me recontacter ?">' + esc(c.waSellMsg || '') + '</textarea></div>' +
       '<div class="row-toggle"><div><p>Afficher l’email en pied de page</p><small>Visible publiquement sur la page, en plus de servir aux notifications.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-showEmail"' + (c.showEmail !== false ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row-toggle"><div><p>Afficher le téléphone en pied de page</p><small>Décochez pour le garder privé (utilisable quand même en interne).</small></div>' +
@@ -962,7 +966,9 @@
     bind('s-email', function (n) { P().contact.email = n.value.trim(); });
     bind('s-phone', function (n) { P().contact.phone = n.value.trim(); });
     bind('s-whatsapp', function (n) { P().contact.whatsapp = n.value.trim(); });
+    bind('s-waVisitLabel', function (n) { P().contact.waVisitLabel = n.value.trim(); });
     bind('s-waVisitMsg', function (n) { P().contact.waVisitMsg = n.value.trim(); });
+    bind('s-waSellLabel', function (n) { P().contact.waSellLabel = n.value.trim(); });
     bind('s-waSellMsg', function (n) { P().contact.waSellMsg = n.value.trim(); });
 
     var waVisitOn = $('#s-waVisitOn');

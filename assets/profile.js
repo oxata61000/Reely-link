@@ -259,8 +259,8 @@
     var c = P.contact || {};
     if (!c.whatsapp) return '';
     var btns = [];
-    if (c.waVisitOn) btns.push({ act: 'wa-visit', label: 'Demander une visite' });
-    if (c.waSellOn) btns.push({ act: 'wa-sell', label: 'Estimer mon bien' });
+    if (c.waVisitOn) btns.push({ act: 'wa-visit', label: c.waVisitLabel || 'Demander une visite' });
+    if (c.waSellOn) btns.push({ act: 'wa-sell', label: c.waSellLabel || 'Estimer mon bien' });
     if (!btns.length) btns.push({ act: 'whatsapp', label: 'WhatsApp' });
     return '<div class="p-cta-row">' + btns.map(function (b) {
       return '<button class="p-cta-btn" data-act="' + b.act + '">' +
