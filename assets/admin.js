@@ -1085,7 +1085,32 @@
       '<br><button class="btn btn-danger btn-sm" id="delProfile" style="margin-top:10px">Supprimer ce profil</button></span></div></div>' : '');
   }
 
+  /** Transforme chaque .panel du conteneur en accordéon (titre cliquable, contenu repliable). */
+  function collapsibleizePanels(container) {
+    $$('.panel', container).forEach(function (panel) {
+      var h3 = panel.querySelector('h3'); if (!h3) return;
+      var rest = Array.prototype.slice.call(panel.childNodes).filter(function (n) { return n !== h3; });
+      var head = document.createElement('button');
+      head.type = 'button'; head.className = 'panel-head';
+      head.appendChild(h3);
+      var chev = document.createElement('span');
+      chev.className = 'panel-chevron'; chev.innerHTML = ico('arrowRight', 16);
+      head.appendChild(chev);
+
+      var inner = document.createElement('div'); inner.className = 'panel-body';
+      rest.forEach(function (n) { inner.appendChild(n); });
+      var wrap = document.createElement('div'); wrap.className = 'panel-body-wrap';
+      wrap.appendChild(inner);
+
+      panel.classList.add('panel-collapsible');
+      panel.insertBefore(head, panel.firstChild);
+      panel.appendChild(wrap);
+      head.onclick = function () { panel.classList.toggle('is-open'); };
+    });
+  }
+
   function wireSettings() {
+    collapsibleizePanels($('#tabBody'));
     function bind(id, fn) { var n = $('#' + id); if (n) n.addEventListener('input', function () { fn(n); persist(); }); }
     bind('s-email', function (n) { P().contact.email = n.value.trim(); });
     bind('s-phone', function (n) { P().contact.phone = n.value.trim(); });
