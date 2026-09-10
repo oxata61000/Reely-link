@@ -13,5 +13,5 @@
   // le captcha sur l'écran de connexion — remplir une fois le site créé
   // sur hcaptcha.com et la clé secrète correspondante activée côté
   // Supabase (Authentication → Settings → Bot and Abuse Protection).
-  global.REELY_HCAPTCHA_SITEKEY = '';
+  global.REELY_HCAPTCHA_SITEKEY = '27c45854-5ba0-4392-944e-38d2354c7ad6';
 })(typeof window !== 'undefined' ? window : this);
