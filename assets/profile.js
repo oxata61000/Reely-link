@@ -164,7 +164,7 @@
     var brand = l.brand || ICONS.brandColor(icon) || g.brand;
     var sub = l.subtitle || '';
     var badge = l.badge
-      ? '<span class="p-badge' + (/complet|limit|dernier|bientôt/i.test(l.badge) ? ' is-hot' : '') + '">' + esc(l.badge) + '</span>'
+      ? '<span class="p-badge' + (/complet|limit|dernier|bientôt|baisse/i.test(l.badge) ? ' is-hot' : '') + '">' + esc(l.badge) + '</span>'
       : '';
 
     if (l.image) {

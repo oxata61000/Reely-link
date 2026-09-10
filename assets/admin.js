@@ -194,12 +194,45 @@
       '</span></div>';
   }
 
+  /* ---------- Annonces immobilières : titre/sous-titre/pastille standardisés ---------- */
+  var IMMO_TYPES = [
+    { key: 'maison', label: 'Maison' },
+    { key: 'appartement', label: 'Appartement' },
+    { key: 'local', label: 'Local commercial' }
+  ];
+  var IMMO_BADGES = [
+    { key: 'exclu', label: 'Exclu' },
+    { key: 'nouvelle_exclu', label: 'Nouvelle Exclu' },
+    { key: 'baisse_prix', label: '↓ Baisse de prix' }
+  ];
+  function immoTypeLabel(key) { return (IMMO_TYPES.filter(function (t) { return t.key === key; })[0] || IMMO_TYPES[0]).label; }
+  function buildImmoTitle(im) {
+    var ts = immoTypeLabel(im.type) + (im.surface ? ' ' + im.surface + 'm2' : '');
+    return ts + (im.localisation ? ' - ' + im.localisation : '');
+  }
+  function buildImmoSubtitle(im) {
+    var parts = [];
+    if (im.pieces) parts.push(im.pieces + ' pièces');
+    if (im.chambres) parts.push(im.chambres + ' ch');
+    if (im.sdb) parts.push(im.sdb + ' SDB');
+    if (im.sde) parts.push(im.sde + ' SDE');
+    return parts.join(' - ');
+  }
+  function buildImmoBadge(im) {
+    return (im.badges || []).map(function (k) {
+      return (IMMO_BADGES.filter(function (b) { return b.key === k; })[0] || {}).label || '';
+    }).filter(Boolean).join(' · ');
+  }
+
   /* ---------- Édition d'un lien ---------- */
   function editLink(id) {
     var isNew = !id;
     var l = isNew
       ? { id: window.Store.uid('l'), type: 'link', title: '', subtitle: '', url: '', icon: '', brand: null, featured: false, visible: true, badge: '', image: '', showTitle: true, schedule: { start: '', end: '' }, clicks: 0 }
       : JSON.parse(JSON.stringify(P().links.filter(function (x) { return x.id === id; })[0]));
+
+    var immoOn = !!(l.immo && l.immo.on);
+    var immo = Object.assign({ type: 'maison', surface: '', localisation: '', pieces: '', chambres: '', sdb: '', sde: '', badges: [] }, l.immo || {});
 
     var body =
       '<div class="stack">' +
@@ -212,17 +245,47 @@
             '<span id="f-pdfLink">' + (isPdfUrl(l.url) ? '<a class="btn btn-quiet btn-sm" href="' + esc(l.url) + '" target="_blank" rel="noopener">' + ico('doc', 16) + 'Voir le fichier</a>' : '') + '</span>' +
             '<input type="file" id="f-pdfFile" accept="application/pdf" hidden>' +
           '</div></div>' +
-        '<div class="field"><label for="f-title">Titre</label>' +
-          '<input class="input" id="f-title" placeholder="Réserver un appel" value="' + esc(l.title) + '"></div>' +
-        '<div class="field"><label for="f-sub">Sous-titre <span class="hint">(facultatif)</span></label>' +
-          '<input class="input" id="f-sub" placeholder="20 min pour cadrer votre projet" value="' + esc(l.subtitle || '') + '"></div>' +
-        '<div class="grid2">' +
+        '<div class="field"><label for="f-type">Type de lien</label><select class="select" id="f-type">' +
+          '<option value="link"' + (l.type === 'link' ? ' selected' : '') + '>Lien classique</option>' +
+          '<option value="embed"' + (l.type === 'embed' ? ' selected' : '') + '>Intégration (YouTube / Spotify)</option>' +
+        '</select></div>' +
+        '<div class="field"><label>Annonce</label><div class="seg" id="f-immoSeg">' +
+          '<button type="button" data-v="0" class="' + (!immoOn ? 'is-on' : '') + '">Annonce normale</button>' +
+          '<button type="button" data-v="1" class="' + (immoOn ? 'is-on' : '') + '">Annonce immobilière</button>' +
+        '</div></div>' +
+
+        '<div id="f-normalFields"' + (immoOn ? ' hidden' : '') + '>' +
+          '<div class="field"><label for="f-title">Titre</label>' +
+            '<input class="input" id="f-title" placeholder="Réserver un appel" value="' + esc(l.title) + '"></div>' +
+          '<div class="field"><label for="f-sub">Sous-titre <span class="hint">(facultatif)</span></label>' +
+            '<input class="input" id="f-sub" placeholder="20 min pour cadrer votre projet" value="' + esc(l.subtitle || '') + '"></div>' +
           '<div class="field"><label for="f-badge">Pastille <span class="hint">(facultatif)</span></label>' +
             '<input class="input" id="f-badge" placeholder="Nouveau · Gratuit · Dernières places" value="' + esc(l.badge || '') + '"></div>' +
-          '<div class="field"><label for="f-type">Type</label><select class="select" id="f-type">' +
-            '<option value="link"' + (l.type === 'link' ? ' selected' : '') + '>Lien classique</option>' +
-            '<option value="embed"' + (l.type === 'embed' ? ' selected' : '') + '>Intégration (YouTube / Spotify)</option>' +
-          '</select></div>' +
+        '</div>' +
+
+        '<div id="f-immoFields"' + (immoOn ? '' : ' hidden') + '>' +
+          '<div class="field"><label>Type de bien</label><div class="seg" id="f-immoType">' +
+            IMMO_TYPES.map(function (t) { return '<button type="button" data-v="' + t.key + '" class="' + ((immo.type || 'maison') === t.key ? 'is-on' : '') + '">' + t.label + '</button>'; }).join('') +
+          '</div></div>' +
+          '<div class="grid2">' +
+            '<div class="field"><label for="f-surface">Superficie (m²)</label><input class="input" id="f-surface" type="number" min="0" placeholder="136" value="' + esc(immo.surface || '') + '"></div>' +
+            '<div class="field"><label for="f-localisation">Localisation</label><input class="input" id="f-localisation" placeholder="Authie" value="' + esc(immo.localisation || '') + '"></div>' +
+          '</div>' +
+          '<div class="grid2">' +
+            '<div class="field"><label for="f-pieces">Pièces</label><input class="input" id="f-pieces" type="number" min="0" value="' + esc(immo.pieces || '') + '"></div>' +
+            '<div class="field"><label for="f-chambres">Chambres</label><input class="input" id="f-chambres" type="number" min="0" value="' + esc(immo.chambres || '') + '"></div>' +
+          '</div>' +
+          '<div class="grid2">' +
+            '<div class="field"><label for="f-sdb">Salle de bain (SDB)</label><input class="input" id="f-sdb" type="number" min="0" value="' + esc(immo.sdb || '') + '"></div>' +
+            '<div class="field"><label for="f-sde">Salle d’eau (SDE)</label><input class="input" id="f-sde" type="number" min="0" value="' + esc(immo.sde || '') + '"></div>' +
+          '</div>' +
+          '<div class="field"><label>Pastilles</label><div class="stack" style="gap:6px">' +
+            IMMO_BADGES.map(function (b) {
+              var checked = (immo.badges || []).indexOf(b.key) !== -1;
+              return '<label class="inline" style="gap:8px;cursor:pointer"><input type="checkbox" data-immo-badge="' + b.key + '"' + (checked ? ' checked' : '') + '><span>' + esc(b.label) + '</span></label>';
+            }).join('') +
+          '</div></div>' +
+          '<div class="callout" id="f-immoPreview" style="margin-top:6px"></div>' +
         '</div>' +
         '<div class="field"><label>Icône</label><div class="icon-grid" id="f-icons"></div></div>' +
         '<div class="field"><label>Photo <span class="hint">(facultatif — remplace la ligne classique par une grande vignette photo, idéal pour un bien immobilier)</span></label>' +
@@ -249,6 +312,47 @@
     var m = modal(isNew ? 'Ajouter un lien' : 'Modifier le lien', body,
       '<span class="spacer"></span><button class="btn btn-quiet btn-sm" data-close>Annuler</button>' +
       '<button class="btn btn-primary btn-sm" data-save>' + ico('check', 18) + 'Enregistrer</button>');
+
+    function paintImmoPreview() {
+      var prev = $('#f-immoPreview', m.node); if (!prev) return;
+      var t = buildImmoTitle(immo), s = buildImmoSubtitle(immo), b = buildImmoBadge(immo);
+      prev.innerHTML = '<b>' + esc(t) + '</b>' + (s ? '<br><span class="hint">' + esc(s) + '</span>' : '') + (b ? '<br><span class="hint">Pastille : ' + esc(b) + '</span>' : '');
+    }
+
+    var normalBox = $('#f-normalFields', m.node), immoBox = $('#f-immoFields', m.node);
+    var immoSeg = $('#f-immoSeg', m.node);
+    immoSeg.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-v]'); if (!b) return;
+      immoOn = b.getAttribute('data-v') === '1';
+      $$('button', immoSeg).forEach(function (x) { x.classList.remove('is-on'); });
+      b.classList.add('is-on');
+      normalBox.hidden = immoOn; immoBox.hidden = !immoOn;
+    });
+
+    var immoTypeSeg = $('#f-immoType', m.node);
+    immoTypeSeg.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-v]'); if (!b) return;
+      immo.type = b.getAttribute('data-v');
+      $$('button', immoTypeSeg).forEach(function (x) { x.classList.remove('is-on'); });
+      b.classList.add('is-on');
+      paintImmoPreview();
+    });
+
+    ['f-surface', 'f-localisation', 'f-pieces', 'f-chambres', 'f-sdb', 'f-sde'].forEach(function (id) {
+      var n = $('#' + id, m.node), key = id.slice(2);
+      n.addEventListener('input', function () { immo[key] = n.value; paintImmoPreview(); });
+    });
+
+    $$('[data-immo-badge]', m.node).forEach(function (n) {
+      n.addEventListener('change', function () {
+        var key = n.getAttribute('data-immo-badge');
+        var i = immo.badges.indexOf(key);
+        if (n.checked && i === -1) immo.badges.push(key);
+        if (!n.checked && i !== -1) immo.badges.splice(i, 1);
+        paintImmoPreview();
+      });
+    });
+    paintImmoPreview();
 
     var chosen = l.icon || '';
     var grid = $('#f-icons', m.node);
@@ -312,13 +416,19 @@
 
     $('[data-save]', m.node).onclick = function () {
       var url = $('#f-url', m.node).value.trim();
-      var title = $('#f-title', m.node).value.trim();
-      if (!title) { toast('Le titre est obligatoire', true); $('#f-title', m.node).focus(); return; }
+      var title, subtitle, badge;
+      if (immoOn) {
+        title = buildImmoTitle(immo); subtitle = buildImmoSubtitle(immo); badge = buildImmoBadge(immo);
+      } else {
+        title = $('#f-title', m.node).value.trim();
+        subtitle = $('#f-sub', m.node).value.trim();
+        badge = $('#f-badge', m.node).value.trim();
+      }
+      if (!title) { toast('Le titre est obligatoire', true); if (!immoOn) $('#f-title', m.node).focus(); return; }
       if (!url) { toast('L’adresse est obligatoire', true); $('#f-url', m.node).focus(); return; }
 
-      l.url = url; l.title = title;
-      l.subtitle = $('#f-sub', m.node).value.trim();
-      l.badge = $('#f-badge', m.node).value.trim();
+      l.url = url; l.title = title; l.subtitle = subtitle; l.badge = badge;
+      l.immo = Object.assign({}, immo, { on: immoOn });
       l.type = $('#f-type', m.node).value;
       l.icon = chosen || ICONS.guess(url).icon;
       l.brand = ICONS.brandColor(l.icon);

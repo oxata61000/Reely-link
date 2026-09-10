@@ -99,6 +99,7 @@
       featured: !!row.featured, visible: row.visible !== false, badge: row.badge || '',
       image: row.image || '', showTitle: row.show_title !== false,
       schedule: { start: row.schedule_start || '', end: row.schedule_end || '' },
+      immo: row.immo || null,
       clicks: 0
     };
   }
@@ -194,7 +195,8 @@
           featured: !!l.featured, visible: l.visible !== false, badge: l.badge || '',
           image: l.image || null, show_title: l.showTitle !== false,
           schedule_start: (l.schedule && l.schedule.start) || null,
-          schedule_end: (l.schedule && l.schedule.end) || null
+          schedule_end: (l.schedule && l.schedule.end) || null,
+          immo: l.immo || null
         };
       });
       var tasks = [];
