@@ -207,7 +207,7 @@
   ];
   function immoTypeLabel(key) { return (IMMO_TYPES.filter(function (t) { return t.key === key; })[0] || IMMO_TYPES[0]).label; }
   function buildImmoTitle(im) {
-    var ts = immoTypeLabel(im.type) + (im.surface ? ' ' + im.surface + 'm2' : '');
+    var ts = immoTypeLabel(im.type) + (im.surface ? ' ' + im.surface + 'm²' : '');
     return ts + (im.localisation ? ' - ' + im.localisation : '');
   }
   function buildImmoSubtitle(im) {
