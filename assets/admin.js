@@ -886,7 +886,15 @@
       '</div>' +
       '<div class="field" style="margin-top:12px"><label for="s-whatsapp">WhatsApp <span class="hint">(facultatif)</span></label>' +
         '<input class="input" id="s-whatsapp" value="' + esc(c.whatsapp || '') + '" placeholder="+33612345678">' +
-        '<span class="hint">Format international avec indicatif. Ajoute un bouton WhatsApp bien visible dans la barre d’actions, avec un message pré-rempli.</span></div>' +
+        '<span class="hint">Format international avec indicatif. Active les boutons rapides ci-dessous, bien visibles en haut de la page.</span></div>' +
+
+      '<div class="row-toggle" style="margin-top:14px"><div><p>Bouton « Demander une visite »</p><small>Ouvre WhatsApp avec un message pré-rempli.</small></div>' +
+        '<label class="switch"><input type="checkbox" id="s-waVisitOn"' + (c.waVisitOn ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="field" id="s-waVisitMsgRow"' + (c.waVisitOn ? '' : ' hidden') + '><textarea class="textarea" id="s-waVisitMsg" placeholder="Bonjour, je souhaite organiser une visite. Pouvez-vous me recontacter ?">' + esc(c.waVisitMsg || '') + '</textarea></div>' +
+
+      '<div class="row-toggle"><div><p>Bouton « Estimer mon bien »</p><small>Pour les prospects vendeurs — message pré-rempli différent.</small></div>' +
+        '<label class="switch"><input type="checkbox" id="s-waSellOn"' + (c.waSellOn ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="field" id="s-waSellMsgRow"' + (c.waSellOn ? '' : ' hidden') + '><textarea class="textarea" id="s-waSellMsg" placeholder="Bonjour, je souhaite faire estimer mon bien en vue d’une mise en vente. Pouvez-vous me recontacter ?">' + esc(c.waSellMsg || '') + '</textarea></div>' +
       '<div class="row-toggle"><div><p>Afficher l’email en pied de page</p><small>Visible publiquement sur la page, en plus de servir aux notifications.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-showEmail"' + (c.showEmail !== false ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row-toggle"><div><p>Afficher le téléphone en pied de page</p><small>Décochez pour le garder privé (utilisable quand même en interne).</small></div>' +
@@ -929,6 +937,21 @@
     bind('s-email', function (n) { P().contact.email = n.value.trim(); });
     bind('s-phone', function (n) { P().contact.phone = n.value.trim(); });
     bind('s-whatsapp', function (n) { P().contact.whatsapp = n.value.trim(); });
+    bind('s-waVisitMsg', function (n) { P().contact.waVisitMsg = n.value.trim(); });
+    bind('s-waSellMsg', function (n) { P().contact.waSellMsg = n.value.trim(); });
+
+    var waVisitOn = $('#s-waVisitOn');
+    if (waVisitOn) waVisitOn.addEventListener('change', function () {
+      P().contact.waVisitOn = waVisitOn.checked;
+      $('#s-waVisitMsgRow').hidden = !waVisitOn.checked;
+      persist();
+    });
+    var waSellOn = $('#s-waSellOn');
+    if (waSellOn) waSellOn.addEventListener('change', function () {
+      P().contact.waSellOn = waSellOn.checked;
+      $('#s-waSellMsgRow').hidden = !waSellOn.checked;
+      persist();
+    });
     bind('s-showEmail', function (n) { P().contact.showEmail = n.checked; });
     bind('s-showPhone', function (n) { P().contact.showPhone = n.checked; });
     bind('s-form', function (n) { P().contact.showForm = n.checked; });

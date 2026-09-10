@@ -254,11 +254,21 @@
 
   function waDigits(v) { return String(v || '').replace(/[^0-9]/g, ''); }
 
+  /* ---------- Boutons rapides WhatsApp (visite / estimation) ---------- */
+  function renderCtaRow() {
+    var c = P.contact || {};
+    if (!c.whatsapp) return '';
+    var btns = [];
+    if (c.waVisitOn) btns.push({ act: 'wa-visit', label: 'Demander une visite', icon: 'calendar' });
+    if (c.waSellOn) btns.push({ act: 'wa-sell', label: 'Estimer mon bien', icon: 'briefcase' });
+    if (!btns.length) btns.push({ act: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp' });
+    return '<div class="p-cta-row">' + btns.map(function (b) {
+      return '<button class="p-cta-btn" data-act="' + b.act + '">' + ICONS.svg(b.icon, 18) + '<span>' + esc(b.label) + '</span></button>';
+    }).join('') + '</div>';
+  }
+
   function renderDock() {
     var c = P.contact || {};
-    var wa = c.whatsapp
-      ? '<button class="dock-cta dock-cta-wa" data-act="whatsapp" aria-label="Écrire sur WhatsApp">' + ICONS.svg('whatsapp', 18) + 'WhatsApp</button>'
-      : '';
     var cta = c.email
       ? '<button class="dock-cta" data-act="contact">' + ICONS.svg('mail', 18) + 'Contact</button>'
       : '';
@@ -266,7 +276,7 @@
       '<button data-act="share" aria-label="Partager ce profil" title="Partager">' + ICONS.svg('share', 20) + '</button>' +
       '<button data-act="qr" aria-label="Afficher le QR code" title="QR code">' + ICONS.svg('qr', 20) + '</button>' +
       '<button data-act="vcard" aria-label="Ajouter aux contacts" title="Ajouter aux contacts">' + ICONS.svg('contact', 20) + '</button>' +
-      wa + cta +
+      cta +
     '</div>';
   }
 
@@ -346,7 +356,7 @@
     applyMeta();
     root.innerHTML =
       '<div class="bg-orbs" aria-hidden="true"><i></i><i></i></div>' +
-      '<div class="shell">' + renderHead() + renderLinks() + renderContact() + renderFoot() + '</div>' +
+      '<div class="shell">' + renderHead() + renderCtaRow() + renderLinks() + renderContact() + renderFoot() + '</div>' +
       (P.theme.dock !== false ? renderDock() : '') +
       (isPreview ? '<div class="preview-flag">Aperçu</div>' : '');
     track('view');
@@ -380,11 +390,14 @@
         if (card) { openContact(true); card.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
         else location.href = 'mailto:' + (P.contact.email || '');
       }
-      else if (act === 'whatsapp') {
+      else if (act === 'whatsapp' || act === 'wa-visit' || act === 'wa-sell') {
         var num = waDigits(P.contact && P.contact.whatsapp);
         if (!num) return;
-        track('click', { id: null, title: 'WhatsApp' });
-        var msg = 'Bonjour, je vous contacte depuis votre page ' + P.name + '.';
+        var msg;
+        if (act === 'wa-visit') msg = (P.contact.waVisitMsg || '').trim() || 'Bonjour, je souhaite organiser une visite. Pouvez-vous me recontacter ?';
+        else if (act === 'wa-sell') msg = (P.contact.waSellMsg || '').trim() || 'Bonjour, je souhaite faire estimer mon bien en vue d’une mise en vente. Pouvez-vous me recontacter ?';
+        else msg = 'Bonjour, je vous contacte depuis votre page ' + P.name + '.';
+        track('click', { id: null, title: act === 'wa-visit' ? 'WhatsApp — Visite' : act === 'wa-sell' ? 'WhatsApp — Estimation' : 'WhatsApp' });
         window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
       }
     }
