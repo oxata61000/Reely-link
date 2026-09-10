@@ -16,10 +16,18 @@
   var P = null;
   var lastClickedLinkId = null;
 
+  // Codes courts /ig/, /fb/… utilisés dans les liens de bio (voir _redirects
+  // et admin.js/UTM_PLATFORMS) : la source de trafic vient du préfixe d'URL,
+  // pas d'un "?utm_source=..." affiché dans le lien.
+  var PLATFORM_CODES = { ig: 'instagram', fb: 'facebook', li: 'linkedin', tt: 'tiktok', yt: 'youtube' };
+  function pathParts() { return location.pathname.replace(/^\/+/, '').split('/').filter(Boolean); }
+
   /* ---------- Source de trafic (Instagram, Facebook, ...) ---------- */
   function detectSource() {
     var utm = qs.get('utm_source');
     if (utm) return utm.toLowerCase();
+    var platform = PLATFORM_CODES[pathParts()[0]];
+    if (platform) return platform;
     var ref = '';
     try { ref = document.referrer ? new URL(document.referrer).hostname.replace(/^www\./, '') : ''; } catch (e) {}
     if (/instagram\.com/i.test(ref)) return 'instagram';
@@ -35,7 +43,9 @@
   // Support d'un futur domaine perso (tondomaine.fr/slug) en plus de
   // l'adresse actuelle (?u=slug) : voir _redirects à la racine du site.
   function slugFromPath() {
-    var seg = location.pathname.replace(/^\/+/, '').split('/')[0];
+    var parts = pathParts();
+    if (PLATFORM_CODES[parts[0]] && parts[1]) return parts[1];
+    var seg = parts[0];
     if (!seg || /\.[a-z0-9]+$/i.test(seg)) return '';
     if (['admin', 'login'].indexOf(seg.toLowerCase()) !== -1) return '';
     return seg;

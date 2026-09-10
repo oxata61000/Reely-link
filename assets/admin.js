@@ -84,17 +84,22 @@
   }
 
   /* ---------- Aperçu ---------- */
+  function siteRoot() { return location.href.replace(/admin\.html.*$/, ''); }
   function publicUrl() {
     var p = P(); if (!p) return '';
-    return location.href.replace(/admin\.html.*$/, '') + 'index.html?u=' + p.slug;
+    return siteRoot() + p.slug;
   }
+  // Codes courts utilisés dans l'URL (ex. /ig/mon-slug) pour garder la source de
+  // trafic dans les stats sans afficher de "?utm_source=..." moche en bio — voir
+  // _redirects (routes /ig/*, /fb/*…) et assets/profile.js (PLATFORM_CODES).
   var UTM_PLATFORMS = [
-    { key: 'instagram', label: 'Instagram' }, { key: 'facebook', label: 'Facebook' },
-    { key: 'linkedin', label: 'LinkedIn' }, { key: 'tiktok', label: 'TikTok' }, { key: 'youtube', label: 'YouTube' }
+    { key: 'instagram', code: 'ig', label: 'Instagram' }, { key: 'facebook', code: 'fb', label: 'Facebook' },
+    { key: 'linkedin', code: 'li', label: 'LinkedIn' }, { key: 'tiktok', code: 'tt', label: 'TikTok' }, { key: 'youtube', code: 'yt', label: 'YouTube' }
   ];
   function utmUrl(platform) {
-    var u = publicUrl(); if (!u) return '';
-    return u + '&utm_source=' + platform;
+    var p = P(); if (!p) return '';
+    var plat = UTM_PLATFORMS.filter(function (x) { return x.key === platform; })[0];
+    return siteRoot() + (plat ? plat.code : platform) + '/' + p.slug;
   }
   var previewSlug = null;
   function postPreview() {
@@ -990,7 +995,7 @@
     var ff = c.formFields || {};
     function ffOn(k) { return ff[k] !== false; }
     return '' +
-    '<div class="panel"><h3>Adresse publique</h3><p class="hint">L’identifiant sert d’adresse : <code>index.html?u=' + esc(P().slug) + '</code></p>' +
+    '<div class="panel"><h3>Adresse publique</h3><p class="hint">L’identifiant sert d’adresse : <code>' + esc(P().slug) + '</code></p>' +
       '<div class="field"><label for="s-slug">Identifiant</label><input class="input" id="s-slug" value="' + esc(P().slug) + '"></div>' +
       '<div class="callout" style="margin-top:14px">' + ico('qr', 19) + '<span>Générez un QR code pointant vers ce profil : idéal pour un flyer, une vitrine ou une carte de visite.' +
       '<br><button class="btn btn-ghost btn-sm" id="showQr" style="margin-top:10px">' + ico('qr', 18) + 'Voir le QR code</button></span></div></div>' +

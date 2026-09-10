@@ -1,3 +1,12 @@
+# Liens de bio courts par réseau (Instagram, Facebook…), ex. /ig/nom-du-client.
+# La source de trafic est déduite du préfixe côté client (assets/profile.js,
+# PLATFORM_CODES) : pas de "?utm_source=..." visible dans le lien affiché en bio.
+/ig/*  /index.html  200
+/fb/*  /index.html  200
+/li/*  /index.html  200
+/tt/*  /index.html  200
+/yt/*  /index.html  200
+
 # Adresses propres pour un futur domaine perso : tondomaine.fr/nom-du-client
 # au lieu de tondomaine.fr/index.html?u=nom-du-client. Les fichiers réels
 # (admin.html, login.html, assets/…) sont toujours servis en priorité par
