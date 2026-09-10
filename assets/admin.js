@@ -1085,27 +1085,27 @@
       '<br><button class="btn btn-danger btn-sm" id="delProfile" style="margin-top:10px">Supprimer ce profil</button></span></div></div>' : '');
   }
 
-  /** Transforme chaque .panel du conteneur en accordéon (titre cliquable, contenu repliable). */
+  /** Transforme chaque .panel du conteneur en menu déroulant natif (<details>/<summary>). */
   function collapsibleizePanels(container) {
     $$('.panel', container).forEach(function (panel) {
       var h3 = panel.querySelector('h3'); if (!h3) return;
       var rest = Array.prototype.slice.call(panel.childNodes).filter(function (n) { return n !== h3; });
-      var head = document.createElement('button');
-      head.type = 'button'; head.className = 'panel-head';
-      head.appendChild(h3);
+
+      var details = document.createElement('details');
+      details.className = 'panel-details';
+      var summary = document.createElement('summary');
+      summary.appendChild(h3);
       var chev = document.createElement('span');
       chev.className = 'panel-chevron'; chev.innerHTML = ico('arrowRight', 16);
-      head.appendChild(chev);
+      summary.appendChild(chev);
+      details.appendChild(summary);
 
       var inner = document.createElement('div'); inner.className = 'panel-body';
       rest.forEach(function (n) { inner.appendChild(n); });
-      var wrap = document.createElement('div'); wrap.className = 'panel-body-wrap';
-      wrap.appendChild(inner);
+      details.appendChild(inner);
 
       panel.classList.add('panel-collapsible');
-      panel.insertBefore(head, panel.firstChild);
-      panel.appendChild(wrap);
-      head.onclick = function () { panel.classList.toggle('is-open'); };
+      panel.appendChild(details);
     });
   }
 
