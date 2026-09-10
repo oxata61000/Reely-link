@@ -1155,12 +1155,72 @@
     refreshPreview();
   }
 
+  /* ---------- Sécurité du compte (double authentification) ---------- */
+  function openSecurityModal() {
+    var m = modal('Sécurité du compte', '<div id="mfaBody"><p class="hint">Chargement…</p></div>',
+      '<span class="spacer"></span><button class="btn btn-quiet btn-sm" data-close>Fermer</button>');
+    paintMfaPanel($('#mfaBody', m.node));
+  }
+
+  function paintMfaPanel(host) {
+    window.Store.auth.mfaListFactors().then(function (res) {
+      if (res.error) { host.innerHTML = '<p class="hint">Erreur : ' + esc(res.error.message) + '</p>'; return; }
+      var verified = (res.data.totp || []).filter(function (f) { return f.status === 'verified'; });
+      if (verified.length) {
+        host.innerHTML =
+          '<div class="callout">' + ico('check', 19) + '<span>Double authentification activée sur ce compte.</span></div>' +
+          '<button class="btn btn-danger btn-sm" id="mfaOff" style="margin-top:14px">Désactiver</button>';
+        $('#mfaOff', host).onclick = function () {
+          confirmBox('Désactiver la double authentification', 'Ton compte ne sera plus protégé par un code à chaque connexion. Continuer ?', function () {
+            window.Store.auth.mfaUnenroll(verified[0].id).then(function () { toast('Double authentification désactivée'); paintMfaPanel(host); });
+          }, true);
+        };
+      } else {
+        host.innerHTML =
+          '<p class="hint">Ajoute un code à 6 chiffres (Google Authenticator, Authy…) exigé en plus de ton mot de passe ou de Google à chaque connexion.</p>' +
+          '<button class="btn btn-primary btn-sm" id="mfaStart" style="margin-top:10px">Activer la double authentification</button>';
+        $('#mfaStart', host).onclick = function () { startMfaEnroll(host); };
+      }
+    });
+  }
+
+  function startMfaEnroll(host) {
+    host.innerHTML = '<p class="hint">Génération…</p>';
+    window.Store.auth.mfaEnroll().then(function (res) {
+      if (res.error) { host.innerHTML = '<p class="hint">Erreur : ' + esc(res.error.message) + '</p>'; return; }
+      var factor = res.data;
+      host.innerHTML =
+        '<p class="hint">Scanne ce QR code avec ton application d’authentification (Google Authenticator, Authy…), puis entre le code généré.</p>' +
+        '<div style="display:grid;place-items:center;padding:14px;background:#fff;border-radius:var(--r-md);margin:10px 0"><img src="' + esc(factor.totp.qr_code) + '" alt="QR code" width="180" height="180"></div>' +
+        '<p class="hint" style="text-align:center;word-break:break-all">Ou saisis ce code manuellement : <code>' + esc(factor.totp.secret) + '</code></p>' +
+        '<div class="field" style="margin-top:12px"><label for="mfa-verify-code">Code à 6 chiffres</label><input class="input" id="mfa-verify-code" inputmode="numeric" maxlength="6" placeholder="000000"></div>' +
+        '<button class="btn btn-primary btn-sm" id="mfaConfirm">Vérifier et activer</button>' +
+        '<p class="hint" id="mfaEnrollErr" style="color:var(--error);margin-top:8px"></p>';
+      $('#mfaConfirm', host).onclick = function () {
+        var code = $('#mfa-verify-code', host).value.trim();
+        window.Store.auth.mfaChallenge(factor.id).then(function (ch) {
+          if (ch.error) throw ch.error;
+          return window.Store.auth.mfaVerify(factor.id, ch.data.id, code);
+        }).then(function (res2) {
+          if (res2.error) throw res2.error;
+          toast('Double authentification activée');
+          paintMfaPanel(host);
+        }).catch(function (err) {
+          $('#mfaEnrollErr', host).textContent = (err && err.message) || 'Code invalide.';
+        });
+      };
+    });
+  }
+
   function boot(session) {
     $('#brandMark').innerHTML = ico('link', 19);
     $('#burger').innerHTML = ico('grid');
     $('#pickerBtn').insertAdjacentHTML('beforeend', ico('grid', 16));
     $('#newProfile').innerHTML = ico('plus', 18) + 'Nouveau profil client';
     $('#newProfile').hidden = !IS_ADMIN;
+    $('#securityBtn').innerHTML = ico('lock', 18) + 'Sécurité';
+    $('#securityBtn').hidden = !IS_ADMIN;
+    $('#securityBtn').onclick = openSecurityModal;
     $('#signOut').innerHTML = ico('logout', 18) + 'Se déconnecter';
     $('#openPublic').innerHTML = ico('eye', 18) + 'Voir en ligne';
     $('#addLink').innerHTML = ico('plus', 18) + 'Ajouter un lien';

@@ -116,14 +116,26 @@
   }
 
   /* ---------- Authentification ---------- */
-  function signIn(email, password) { return sb().auth.signInWithPassword({ email: email, password: password }); }
+  function signIn(email, password, captchaToken) {
+    return sb().auth.signInWithPassword({ email: email, password: password, options: captchaToken ? { captchaToken: captchaToken } : undefined });
+  }
   function signInWithGoogle(redirectTo) { return sb().auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo } }); }
   function signOut() { return sb().auth.signOut(); }
   function getSession() { return sb().auth.getSession().then(function (r) { return r.data.session; }); }
   function getUser() { return sb().auth.getUser().then(function (r) { return r.data.user; }); }
   function onAuthChange(fn) { sb().auth.onAuthStateChange(function (event, session) { fn(session); }); }
-  function resetPassword(email, redirectTo) { return sb().auth.resetPasswordForEmail(email, { redirectTo: redirectTo }); }
+  function resetPassword(email, redirectTo, captchaToken) {
+    return sb().auth.resetPasswordForEmail(email, { redirectTo: redirectTo, captchaToken: captchaToken });
+  }
   function updatePassword(password) { return sb().auth.updateUser({ password: password }); }
+
+  /* ---------- Double authentification (TOTP) ---------- */
+  function mfaEnroll() { return sb().auth.mfa.enroll({ factorType: 'totp' }); }
+  function mfaChallenge(factorId) { return sb().auth.mfa.challenge({ factorId: factorId }); }
+  function mfaVerify(factorId, challengeId, code) { return sb().auth.mfa.verify({ factorId: factorId, challengeId: challengeId, code: code }); }
+  function mfaListFactors() { return sb().auth.mfa.listFactors(); }
+  function mfaUnenroll(factorId) { return sb().auth.mfa.unenroll({ factorId: factorId }); }
+  function mfaLevel() { return sb().auth.mfa.getAuthenticatorAssuranceLevel(); }
   // Les comptes sont créés uniquement par invitation (admin) — plus d'auto-inscription publique.
   function isAdmin() {
     return sb().rpc('is_admin').then(function (res) { return !res.error && !!res.data; });
@@ -365,7 +377,9 @@
       signIn: signIn, signInWithGoogle: signInWithGoogle, signOut: signOut,
       getSession: getSession, getUser: getUser, onAuthChange: onAuthChange,
       resetPassword: resetPassword, updatePassword: updatePassword,
-      isAdmin: isAdmin, inviteClient: inviteClient
+      isAdmin: isAdmin, inviteClient: inviteClient,
+      mfaEnroll: mfaEnroll, mfaChallenge: mfaChallenge, mfaVerify: mfaVerify,
+      mfaListFactors: mfaListFactors, mfaUnenroll: mfaUnenroll, mfaLevel: mfaLevel
     },
 
     load: load, getPublicProfile: getPublicProfile,

@@ -9,4 +9,9 @@
     url: 'https://gyemsuqhpqitxzsttcbp.supabase.co',
     anonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd5ZW1zdXFocHFpdHh6c3R0Y2JwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcwNjg1MTIsImV4cCI6MjEwMjY0NDUxMn0.rwNZMVIMtIf795kZl9l1lJSEy05ITmCUVPWcIGGYvAs'
   };
+  // Clé de site hCaptcha (publique par conception). Laisser vide désactive
+  // le captcha sur l'écran de connexion — remplir une fois le site créé
+  // sur hcaptcha.com et la clé secrète correspondante activée côté
+  // Supabase (Authentication → Settings → Bot and Abuse Protection).
+  global.REELY_HCAPTCHA_SITEKEY = '';
 })(typeof window !== 'undefined' ? window : this);
