@@ -606,9 +606,27 @@
         '<div class="bars">' + bars + '</div></div>' +
       '<div class="panel"><h3>Sources de trafic</h3><p class="hint">D’où viennent tes visiteurs (Instagram, Facebook…).</p>' +
         '<div class="bars">' + sourceBars(st.sources) + '</div></div>' +
+      '<div class="panel"><h3>Boutons rapides</h3><p class="hint">Clics sur les boutons WhatsApp (visite, estimation).</p>' +
+        '<div class="bars">' + ctaBars(st.ctas) + '</div></div>' +
       '<div class="panel"><h3>Mesure côté serveur</h3><p class="hint">Ces chiffres sont mesurés côté serveur, tous visiteurs et tous appareils confondus.</p>' +
         '<div class="callout warn">' + ico('trash', 19) + '<span>Remettre les compteurs de ce profil à zéro.' +
-        '<br><button class="btn btn-danger btn-sm" id="resetStats" style="margin-top:10px">Réinitialiser</button></span></div></div>';
+        '<br><button class="btn btn-danger btn-sm" id="resetStats" style="margin-top:10px">Réinitialiser</button></span></div>' +
+        (IS_ADMIN ? '<div class="callout warn" style="margin-top:12px">' + ico('trash', 19) + '<span>Réinitialiser les statistiques de <b>tous les profils clients</b>, pas seulement celui-ci. Irréversible.' +
+        '<br><button class="btn btn-danger btn-sm" id="resetAllStats" style="margin-top:10px">Tout réinitialiser</button></span></div>' : '') +
+      '</div>';
+  }
+
+  function ctaBars(ctas) {
+    var labels = { whatsapp: 'WhatsApp', 'wa-visit': 'Demande de visite', 'wa-sell': 'Estimation / mise en vente' };
+    var keys = Object.keys(ctas || {});
+    if (!keys.length) return '<p class="hint">Pas encore de clic sur ces boutons.</p>';
+    var max = Math.max.apply(null, keys.map(function (k) { return ctas[k]; }));
+    return keys.sort(function (a, b) { return ctas[b] - ctas[a]; }).map(function (k) {
+      var v = ctas[k];
+      return '<div class="bar-row"><div><div class="bar-label truncate">' + esc(labels[k] || k) + '</div>' +
+        '<div class="bar-track"><i class="bar-fill" style="width:' + (v / max * 100) + '%;display:block"></i></div></div>' +
+        '<div class="bar-val">' + v + '</div></div>';
+    }).join('');
   }
 
   function sourceBars(sources) {
@@ -629,6 +647,13 @@
     if (r) r.onclick = function () {
       confirmBox('Réinitialiser', 'Les compteurs de vues et de clics de ce profil repartent à zéro.', function () {
         window.Store.resetStats(P().id).then(function () { render(); toast('Compteurs remis à zéro'); })
+          .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
+      }, true);
+    };
+    var ra = $('#resetAllStats');
+    if (ra) ra.onclick = function () {
+      confirmBox('Tout réinitialiser', 'Ceci supprime définitivement l’historique de vues et de clics de TOUS les profils clients, pas seulement celui affiché. Cette action est irréversible. Continuer ?', function () {
+        window.Store.resetAllStats().then(function () { render(); toast('Statistiques de tous les profils remises à zéro'); })
           .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
       }, true);
     };

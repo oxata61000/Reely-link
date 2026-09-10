@@ -104,9 +104,9 @@
   }
 
   /* ---------- Suivi des clics ---------- */
-  function track(kind, link) {
+  function track(kind, link, cta) {
     if (isPreview) return;
-    try { window.Store.bump(P.id, kind, link && link.id, PAGE_SOURCE); } catch (e) {}
+    try { window.Store.bump(P.id, kind, link && link.id, PAGE_SOURCE, cta); } catch (e) {}
     var name = kind === 'view' ? 'pageview' : 'link_click';
     var props = link ? { link: link.title, url: link.url } : {};
     if (window.plausible) window.plausible(name, { props: props });
@@ -398,7 +398,7 @@
         if (act === 'wa-visit') msg = (P.contact.waVisitMsg || '').trim() || 'Bonjour, je souhaite organiser une visite. Pouvez-vous me recontacter ?';
         else if (act === 'wa-sell') msg = (P.contact.waSellMsg || '').trim() || 'Bonjour, je souhaite faire estimer mon bien en vue d’une mise en vente. Pouvez-vous me recontacter ?';
         else msg = 'Bonjour, je vous contacte depuis votre page ' + P.name + '.';
-        track('click', { id: null, title: act === 'wa-visit' ? 'WhatsApp — Visite' : act === 'wa-sell' ? 'WhatsApp — Estimation' : 'WhatsApp' });
+        track('click', { id: null, title: act === 'wa-visit' ? 'WhatsApp — Visite' : act === 'wa-sell' ? 'WhatsApp — Estimation' : 'WhatsApp' }, act);
         window.open('https://wa.me/' + num + '?text=' + encodeURIComponent(msg), '_blank', 'noopener');
       }
     }

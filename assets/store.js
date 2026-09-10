@@ -242,7 +242,7 @@
   var statsCache = {}, statsLoading = {}, statsListeners = [];
   function onStatsUpdate(fn) { statsListeners.push(fn); }
   function notifyStats() { statsListeners.forEach(function (fn) { try { fn(); } catch (e) {} }); }
-  function emptyStats() { return { views: 0, clicks: 0, links: {}, days: {}, sources: {} }; }
+  function emptyStats() { return { views: 0, clicks: 0, links: {}, days: {}, sources: {}, ctas: {} }; }
 
   function statsFor(profileId) {
     if (!profileId) return emptyStats();
@@ -252,7 +252,7 @@
 
   function refreshStats(profileId) {
     statsLoading[profileId] = true;
-    return sb().from('link_events').select('kind, link_id, created_at, source').eq('profile_id', profileId)
+    return sb().from('link_events').select('kind, link_id, created_at, source, cta').eq('profile_id', profileId)
       .then(function (res) {
         statsLoading[profileId] = false;
         if (res.error) { console.warn(res.error); return; }
@@ -265,7 +265,11 @@
             var src = e.source || 'autre';
             s.sources[src] = (s.sources[src] || 0) + 1;
           }
-          else { s.clicks++; s.days[day].clicks++; if (e.link_id) s.links[e.link_id] = (s.links[e.link_id] || 0) + 1; }
+          else {
+            s.clicks++; s.days[day].clicks++;
+            if (e.link_id) s.links[e.link_id] = (s.links[e.link_id] || 0) + 1;
+            if (e.cta) s.ctas[e.cta] = (s.ctas[e.cta] || 0) + 1;
+          }
         });
         statsCache[profileId] = s;
         notifyStats();
@@ -280,10 +284,18 @@
     });
   }
 
-  function bump(profileId, kind, linkId, source) {
+  function resetAllStats() {
+    return sb().from('link_events').delete().gte('id', 0).then(function (res) {
+      if (res.error) throw res.error;
+      statsCache = {};
+      notifyStats();
+    });
+  }
+
+  function bump(profileId, kind, linkId, source, cta) {
     // Pas de télémétrie possible sur une page exportée en autonome (pas de SDK/config Supabase) : no-op silencieux.
     if (!profileId || !cfg || !global.supabase) return Promise.resolve();
-    return sb().from('link_events').insert({ profile_id: profileId, link_id: linkId || null, kind: kind, source: source || null })
+    return sb().from('link_events').insert({ profile_id: profileId, link_id: linkId || null, kind: kind, source: source || null, cta: cta || null })
       .then(function (res) { if (res.error) console.warn(res.error); });
   }
 
@@ -390,7 +402,7 @@
       return saveProfile(p);
     },
 
-    bump: bump, statsFor: statsFor, resetStats: resetStats, onStatsUpdate: onStatsUpdate,
+    bump: bump, statsFor: statsFor, resetStats: resetStats, resetAllStats: resetAllStats, onStatsUpdate: onStatsUpdate,
     leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, updateLeadStatus: updateLeadStatus,
     deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate,
     notesFor: notesFor, addNote: addNote, onNotesUpdate: onNotesUpdate
