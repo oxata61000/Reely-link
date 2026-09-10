@@ -721,7 +721,11 @@
       '</div></div>';
   }
 
-  function csvEscape(v) { return '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"'; }
+  function csvEscape(v) {
+    var s = String(v == null ? '' : v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
 
   function exportLeadsCsv() {
     var leads = window.Store.leadsFor(LEADS_SCOPE).filter(function (l) { return matchesSearch(l, LEADS_SEARCH); });

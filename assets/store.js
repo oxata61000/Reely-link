@@ -117,6 +117,7 @@
 
   /* ---------- Authentification ---------- */
   function signIn(email, password) { return sb().auth.signInWithPassword({ email: email, password: password }); }
+  function signInWithGoogle(redirectTo) { return sb().auth.signInWithOAuth({ provider: 'google', options: { redirectTo: redirectTo } }); }
   function signOut() { return sb().auth.signOut(); }
   function getSession() { return sb().auth.getSession().then(function (r) { return r.data.session; }); }
   function getUser() { return sb().auth.getUser().then(function (r) { return r.data.user; }); }
@@ -161,7 +162,7 @@
   }
 
   function getPublicProfile(slug) {
-    return sb().from('profiles').select('*, links(*)').eq('slug', slug).maybeSingle().then(function (res) {
+    return sb().rpc('get_public_profile', { p_slug: slug }).then(function (res) {
       if (res.error || !res.data) return null;
       return mapProfileRow(res.data);
     });
@@ -361,7 +362,7 @@
     isLive: isLive, slugify: slugify,
 
     auth: {
-      signIn: signIn, signOut: signOut,
+      signIn: signIn, signInWithGoogle: signInWithGoogle, signOut: signOut,
       getSession: getSession, getUser: getUser, onAuthChange: onAuthChange,
       resetPassword: resetPassword, updatePassword: updatePassword,
       isAdmin: isAdmin, inviteClient: inviteClient
