@@ -259,11 +259,12 @@
     var c = P.contact || {};
     if (!c.whatsapp) return '';
     var btns = [];
-    if (c.waVisitOn) btns.push({ act: 'wa-visit', label: 'Demander une visite', icon: 'calendar' });
-    if (c.waSellOn) btns.push({ act: 'wa-sell', label: 'Estimer mon bien', icon: 'briefcase' });
-    if (!btns.length) btns.push({ act: 'whatsapp', label: 'WhatsApp', icon: 'whatsapp' });
+    if (c.waVisitOn) btns.push({ act: 'wa-visit', label: 'Demander une visite' });
+    if (c.waSellOn) btns.push({ act: 'wa-sell', label: 'Estimer mon bien' });
+    if (!btns.length) btns.push({ act: 'whatsapp', label: 'WhatsApp' });
     return '<div class="p-cta-row">' + btns.map(function (b) {
-      return '<button class="p-cta-btn" data-act="' + b.act + '">' + ICONS.svg(b.icon, 18) + '<span>' + esc(b.label) + '</span></button>';
+      return '<button class="p-cta-btn" data-act="' + b.act + '">' +
+        '<span class="p-cta-ico">' + ICONS.svg('whatsapp', 16) + '</span><span>' + esc(b.label) + '</span></button>';
     }).join('') + '</div>';
   }
 

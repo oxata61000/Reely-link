@@ -59,15 +59,21 @@ body.profile {
 .p-social:hover { transform: translateY(-3px); background: var(--brand, var(--primary)); color: #fff; box-shadow: var(--e2); }
 
 /* --- Boutons rapides WhatsApp (visite / estimation) --- */
-.p-cta-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; margin-top: 22px; }
+.p-cta-row { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; margin-top: 24px; }
 .p-cta-btn {
-  display: inline-flex; align-items: center; gap: 8px;
-  height: 44px; padding: 0 18px; border-radius: var(--r-full);
-  background: #25D366; color: #fff; font-weight: 600; font-size: 14.5px;
-  box-shadow: var(--e1); transition: transform .2s var(--ease), box-shadow .2s;
+  display: inline-flex; align-items: center; gap: 10px;
+  height: 48px; padding: 0 20px 0 8px; border-radius: var(--r-full);
+  background: linear-gradient(135deg, #25D366, #1fb959); color: #fff; font-weight: 600; font-size: 14.5px;
+  box-shadow: 0 6px 16px -4px rgba(37, 211, 102, .55);
+  transition: transform .2s var(--ease), box-shadow .2s var(--ease);
 }
-.p-cta-btn:hover { transform: translateY(-2px); box-shadow: var(--e2); }
-.p-cta-btn svg { width: 18px; height: 18px; flex: none; }
+.p-cta-btn:hover { transform: translateY(-2px); box-shadow: 0 10px 20px -4px rgba(37, 211, 102, .6); }
+.p-cta-btn:active { transform: translateY(0); }
+.p-cta-ico {
+  display: grid; place-items: center; width: 32px; height: 32px; border-radius: 50%;
+  background: #fff; color: #25D366; flex: none;
+}
+.p-cta-ico svg { width: 17px; height: 17px; }
 
 /* --- Liens --- */
 .p-links { display: flex; flex-direction: column; gap: 14px; margin-top: 40px; }
