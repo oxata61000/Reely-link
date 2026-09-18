@@ -22,6 +22,22 @@
   var PLATFORM_CODES = { ig: 'instagram', fb: 'facebook', li: 'linkedin', tt: 'tiktok', yt: 'youtube' };
   function pathParts() { return location.pathname.replace(/^\/+/, '').split('/').filter(Boolean); }
 
+  // Domaines perso avec sous-domaine par client (gh-carpiquet.reely-links.com) —
+  // doit rester identique à APEX_DOMAINS dans admin.js.
+  var APEX_DOMAINS = ['reely-links.com', 'reely-links.fr', 'reely-links.info', 'reely-links.store'];
+  function slugFromHost() {
+    var host = location.hostname.toLowerCase().replace(/^www\./, '');
+    for (var i = 0; i < APEX_DOMAINS.length; i++) {
+      var apex = APEX_DOMAINS[i];
+      if (host === apex) return ''; // domaine nu = pas un client
+      var suffix = '.' + apex;
+      if (host.length > suffix.length && host.slice(-suffix.length) === suffix) {
+        return host.slice(0, host.length - suffix.length);
+      }
+    }
+    return '';
+  }
+
   /* ---------- Source de trafic (Instagram, Facebook, ...) ---------- */
   function detectSource() {
     var utm = qs.get('utm_source');
@@ -53,7 +69,7 @@
 
   function resolve() {
     if (window.REELY_PROFILE) return Promise.resolve(window.REELY_PROFILE);
-    var slug = qs.get('u') || slugFromPath();
+    var slug = qs.get('u') || slugFromHost() || slugFromPath();
     if (!slug) return Promise.resolve(null);
     return window.Store.getPublicProfile(slug);
   }

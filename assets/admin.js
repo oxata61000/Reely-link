@@ -85,13 +85,22 @@
 
   /* ---------- Aperçu ---------- */
   function siteRoot() { return location.href.replace(/admin\.html.*$/, ''); }
+  // Domaines perso avec sous-domaine par client (gh-carpiquet.reely-links.com) —
+  // doit rester identique à APEX_DOMAINS dans assets/profile.js.
+  var APEX_DOMAINS = ['reely-links.com', 'reely-links.fr', 'reely-links.info', 'reely-links.store'];
+  function apexHost() {
+    var host = location.hostname.toLowerCase().replace(/^www\./, '');
+    return APEX_DOMAINS.indexOf(host) !== -1 ? host : '';
+  }
   function publicUrl() {
     var p = P(); if (!p) return '';
+    var apex = apexHost();
+    if (apex) return location.protocol + '//' + p.slug + '.' + apex + '/';
     return siteRoot() + p.slug;
   }
-  // Codes courts utilisés dans l'URL (ex. /ig/mon-slug) pour garder la source de
-  // trafic dans les stats sans afficher de "?utm_source=..." moche en bio — voir
-  // _redirects (routes /ig/*, /fb/*…) et assets/profile.js (PLATFORM_CODES).
+  // Codes courts utilisés dans l'URL (ex. /ig/mon-slug, ou ig.mon-slug.reely-links.com)
+  // pour garder la source de trafic dans les stats sans afficher de "?utm_source=..."
+  // moche en bio — voir _redirects (routes /ig/*, /fb/*…) et assets/profile.js.
   var UTM_PLATFORMS = [
     { key: 'instagram', code: 'ig', label: 'Instagram' }, { key: 'facebook', code: 'fb', label: 'Facebook' },
     { key: 'linkedin', code: 'li', label: 'LinkedIn' }, { key: 'tiktok', code: 'tt', label: 'TikTok' }, { key: 'youtube', code: 'yt', label: 'YouTube' }
@@ -99,7 +108,10 @@
   function utmUrl(platform) {
     var p = P(); if (!p) return '';
     var plat = UTM_PLATFORMS.filter(function (x) { return x.key === platform; })[0];
-    return siteRoot() + (plat ? plat.code : platform) + '/' + p.slug;
+    var code = plat ? plat.code : platform;
+    var apex = apexHost();
+    if (apex) return location.protocol + '//' + p.slug + '.' + apex + '/' + code;
+    return siteRoot() + code + '/' + p.slug;
   }
   var previewSlug = null;
   function postPreview() {
