@@ -380,6 +380,14 @@
   }
 
   /* ---------- Capture d'email avant une annonce immobilière ---------- */
+  function leadGateKey() { return 'reely-lead-' + P.id; }
+  function leadAlreadyGiven() {
+    try { return !!localStorage.getItem(leadGateKey()); } catch (e) { return false; }
+  }
+  function markLeadGiven() {
+    try { localStorage.setItem(leadGateKey(), '1'); } catch (e) {}
+  }
+
   function leadGateSheet(link) {
     var s = sheet('Avant de voir l’annonce', '' +
       '<p class="hint" style="margin-bottom:14px">Laissez votre email pour accéder à l’annonce — ' + esc(P.name) + ' pourra vous recontacter à ce sujet.</p>' +
@@ -404,6 +412,7 @@
         email: email, marketingConsent: consent,
         message: 'A demandé à voir l’annonce.', linkId: link.id, source: PAGE_SOURCE
       }).catch(function () {}).then(function () {
+        markLeadGiven();
         s.close();
         window.open(safeUrl(link.url), '_blank', 'noopener');
       });
@@ -479,7 +488,9 @@
       if (link && link.type === 'link') lastClickedLinkId = link.id;
       track('click', link);
       if (isPreview) { e.preventDefault(); return; }
-      if (link && link.immo && link.immo.on && P.contact && P.contact.leadGateOn) { e.preventDefault(); leadGateSheet(link); }
+      if (link && link.immo && link.immo.on && P.contact && P.contact.leadGateOn && !leadAlreadyGiven()) {
+        e.preventDefault(); leadGateSheet(link);
+      }
       return;
     }
     var s = e.target.closest('[data-social]');
