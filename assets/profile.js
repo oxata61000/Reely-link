@@ -67,11 +67,11 @@
     return seg;
   }
 
+  var requestedSlug = qs.get('u') || slugFromHost() || slugFromPath();
   function resolve() {
     if (window.REELY_PROFILE) return Promise.resolve(window.REELY_PROFILE);
-    var slug = qs.get('u') || slugFromHost() || slugFromPath();
-    if (!slug) return Promise.resolve(null);
-    return window.Store.getPublicProfile(slug);
+    if (!requestedSlug) return Promise.resolve(null);
+    return window.Store.getPublicProfile(requestedSlug);
   }
 
   /* ---------- Utilitaires ---------- */
@@ -395,9 +395,38 @@
     toast('Fiche contact téléchargée');
   }
 
+  /* ---------- Page d'accueil (reely-links.com sans client) ---------- */
+  // Vitrine express le temps de voir si ça capte du trafic — à remplacer par
+  // une vraie page de présentation plus tard. Numéro WhatsApp à modifier ici
+  // si besoin.
+  var LANDING_WHATSAPP = '33781103721';
+  function renderLanding() {
+    document.title = 'Reely Links — votre page de liens en 5 minutes';
+    var waMsg = encodeURIComponent('Bonjour, je suis tombé sur Reely Links et j’aimerais en savoir plus.');
+    return '<div class="bg-orbs" aria-hidden="true"><i></i><i></i></div>' +
+      '<div class="shell">' +
+        '<header class="p-head">' +
+          '<div class="p-avatar"><div class="avatar-fallback" style="width:100%;height:100%">RL</div></div>' +
+          '<h1 class="t-display p-name">Reely Links</h1>' +
+          '<p class="p-bio">Une page de liens sur mesure pour les professionnels : tous vos liens, votre WhatsApp et votre formulaire de contact réunis sur une seule adresse, personnalisée pour chaque client.</p>' +
+        '</header>' +
+        '<div class="p-cta-row">' +
+          '<a class="p-cta-btn" href="https://wa.me/' + LANDING_WHATSAPP + '?text=' + waMsg + '" target="_blank" rel="noopener">' +
+            '<span class="p-cta-ico">' + ICONS.svg('whatsapp', 16) + '</span><span>En savoir plus</span></a>' +
+          '<a class="p-cta-btn p-cta-btn-outline" href="/login.html">' +
+            '<span class="p-cta-ico p-cta-ico-outline">' + ICONS.svg('lock', 16) + '</span><span>Se connecter</span></a>' +
+        '</div>' +
+      '</div>';
+  }
+
   /* ---------- Montage ---------- */
   function mount() {
-    if (!P) { root.innerHTML = '<p style="padding:40px;text-align:center">Profil introuvable.</p>'; return; }
+    if (!P) {
+      if (requestedSlug) { root.innerHTML = '<p style="padding:40px;text-align:center">Profil introuvable.</p>'; return; }
+      applyTheme(window.Store.defaultTheme('indigo'));
+      root.innerHTML = renderLanding();
+      return;
+    }
     applyTheme(P.theme);
     applyMeta();
     root.innerHTML =
