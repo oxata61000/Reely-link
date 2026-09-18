@@ -1062,6 +1062,8 @@
         '<label class="switch"><input type="checkbox" id="s-form"' + (c.showForm ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="row-toggle"><div><p>Bouton « Nous écrire » en haut de page</p><small>À côté des boutons WhatsApp, pour retrouver le formulaire sans défiler tous les liens.</small></div>' +
         '<label class="switch"><input type="checkbox" id="s-formCta"' + (c.formCta !== false ? ' checked' : '') + '><span></span></label></div>' +
+      '<div class="row-toggle"><div><p>Demander un email avant d’ouvrir une annonce immobilière</p><small>Une popup demande l’email du visiteur (avec case de consentement marketing non cochée par défaut) avant de l’envoyer vers l’annonce. Désactivé : le lien s’ouvre directement, comme avant.</small></div>' +
+        '<label class="switch"><input type="checkbox" id="s-leadGate"' + (c.leadGateOn ? ' checked' : '') + '><span></span></label></div>' +
       '<div class="field" style="margin-top:12px"><label for="s-endpoint">Copier aussi vers <span class="hint">(facultatif)</span></label>' +
         '<input class="input" id="s-endpoint" value="' + esc(c.endpoint || '') + '" placeholder="https://formspree.io/f/xxxx">' +
         '<span class="hint">Chaque message est enregistré dans l’onglet Contacts. Renseignez une adresse ici pour recevoir aussi une copie via un service externe (Formspree, Zapier…).</span></div></div>' +
@@ -1154,6 +1156,7 @@
     bind('s-showPhone', function (n) { P().contact.showPhone = n.checked; });
     bind('s-form', function (n) { P().contact.showForm = n.checked; });
     bind('s-formCta', function (n) { P().contact.formCta = n.checked; });
+    bind('s-leadGate', function (n) { P().contact.leadGateOn = n.checked; });
     bind('s-endpoint', function (n) { P().contact.endpoint = n.value.trim(); });
     bind('s-txOptions', function (n) {
       P().contact.txOptions = n.value.split(',').map(function (v) { return v.trim(); }).filter(Boolean);

@@ -479,7 +479,7 @@
       if (link && link.type === 'link') lastClickedLinkId = link.id;
       track('click', link);
       if (isPreview) { e.preventDefault(); return; }
-      if (link && link.immo && link.immo.on) { e.preventDefault(); leadGateSheet(link); }
+      if (link && link.immo && link.immo.on && P.contact && P.contact.leadGateOn) { e.preventDefault(); leadGateSheet(link); }
       return;
     }
     var s = e.target.closest('[data-social]');
