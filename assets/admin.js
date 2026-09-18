@@ -856,10 +856,11 @@
     var client = (LEADS_SCOPE === '*' && l.profiles) ? '<span class="tag-mini">' + esc(l.profiles.name) + '</span>' : '';
     var src = l.source && SOURCE_LABELS[l.source]
       ? '<span class="tag-mini ok">' + SOURCE_LABELS[l.source] + '</span>' : '';
+    var consent = l.marketing_consent ? '<span class="tag-mini ok" title="A accepté les communications marketing">✓ Marketing OK</span>' : '';
     var propTitle = findLinkTitle(l.related_link_id);
     var status = l.status || 'new';
     return '<div class="kanban-card" draggable="true" data-id="' + esc(l.id) + '">' +
-      '<div class="kanban-card-top"><b>' + esc(name) + '</b>' + tx + src + client + '</div>' +
+      '<div class="kanban-card-top"><b>' + esc(name) + '</b>' + tx + src + client + consent + '</div>' +
       '<div class="hint">' + esc(meta) + '</div>' +
       '<div class="hint">' + date + '</div>' +
       (propTitle ? '<div class="hint">Via : ' + esc(propTitle) + '</div>' : '') +
@@ -881,14 +882,14 @@
 
   function exportLeadsCsv() {
     var leads = window.Store.leadsFor(LEADS_SCOPE).filter(function (l) { return matchesSearch(l, LEADS_SEARCH); });
-    var header = ['Client', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Type', 'Statut', 'Source', 'Bien', 'Message', 'Date'];
+    var header = ['Client', 'Prénom', 'Nom', 'Email', 'Téléphone', 'Type', 'Statut', 'Source', 'Bien', 'Message', 'Consentement marketing', 'Date'];
     var rows = leads.map(function (l) {
       return [
         LEADS_SCOPE === '*' && l.profiles ? l.profiles.name : '',
         l.first_name || '', l.last_name || '', l.email || '', l.phone || '',
         TX_LABELS[l.transaction_type] || l.transaction_type || '', STATUS_COLS.filter(function (c) { return c.key === (l.status || 'new'); })[0].label,
         SOURCE_LABELS[l.source] || l.source || '', findLinkTitle(l.related_link_id),
-        l.message || '', new Date(l.created_at).toLocaleString('fr-FR')
+        l.message || '', l.marketing_consent ? 'Oui' : 'Non', new Date(l.created_at).toLocaleString('fr-FR')
       ].map(csvEscape).join(',');
     });
     dl([header.map(csvEscape).join(','), rows.join('\n')].join('\n'), 'contacts.csv', 'text/csv');

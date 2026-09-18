@@ -334,7 +334,8 @@
       name: [lead.firstName, lead.lastName].filter(Boolean).join(' '),
       first_name: lead.firstName || null, last_name: lead.lastName || null,
       email: lead.email, phone: lead.phone || null, transaction_type: lead.transactionType || null,
-      message: lead.message, related_link_id: lead.linkId || null, source: lead.source || null
+      message: lead.message, related_link_id: lead.linkId || null, source: lead.source || null,
+      marketing_consent: !!lead.marketingConsent
     }).then(function (res) { if (res.error) throw res.error; });
   }
 

@@ -379,6 +379,37 @@
     };
   }
 
+  /* ---------- Capture d'email avant une annonce immobilière ---------- */
+  function leadGateSheet(link) {
+    var s = sheet('Avant de voir l’annonce', '' +
+      '<p class="hint" style="margin-bottom:14px">Laissez votre email pour accéder à l’annonce — ' + esc(P.name) + ' pourra vous recontacter à ce sujet.</p>' +
+      '<form id="lgForm">' +
+        '<div class="field"><label for="lg-email">Email</label><input class="input" id="lg-email" type="email" required placeholder="vous@exemple.fr"></div>' +
+        '<label class="inline" style="gap:8px;margin-top:14px;align-items:flex-start;cursor:pointer">' +
+          '<input type="checkbox" id="lg-consent" style="margin-top:3px">' +
+          '<span class="hint">J’accepte de recevoir par email des communications de ' + esc(P.name) + '. Désinscription possible à tout moment.</span>' +
+        '</label>' +
+        '<button class="btn btn-primary btn-block" type="submit" style="margin-top:16px">Voir l’annonce</button>' +
+        '<p class="hint" id="lg-status" style="margin-top:8px;min-height:16px"></p>' +
+      '</form>');
+    var form = document.getElementById('lgForm');
+    form.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = document.getElementById('lg-email').value.trim();
+      if (!email) return;
+      var consent = document.getElementById('lg-consent').checked;
+      var status = document.getElementById('lg-status');
+      status.textContent = 'Un instant…';
+      window.Store.addLead(P.id, {
+        email: email, marketingConsent: consent,
+        message: 'A demandé à voir l’annonce.', linkId: link.id, source: PAGE_SOURCE
+      }).catch(function () {}).then(function () {
+        s.close();
+        window.open(safeUrl(link.url), '_blank', 'noopener');
+      });
+    });
+  }
+
   function vcard() {
     var c = P.contact || {};
     var lines = ['BEGIN:VCARD', 'VERSION:3.0', 'FN:' + P.name, 'N:;' + P.name + ';;;'];
@@ -447,7 +478,8 @@
       var link = (P.links || []).filter(function (l) { return l.id === id; })[0];
       if (link && link.type === 'link') lastClickedLinkId = link.id;
       track('click', link);
-      if (isPreview) e.preventDefault();
+      if (isPreview) { e.preventDefault(); return; }
+      if (link && link.immo && link.immo.on) { e.preventDefault(); leadGateSheet(link); }
       return;
     }
     var s = e.target.closest('[data-social]');
