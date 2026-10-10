@@ -294,6 +294,32 @@
     });
   }
 
+  /** Remises à zéro ciblées : un seul lien, une seule source de trafic ou un seul bouton rapide,
+   *  sans toucher au reste des statistiques du profil. */
+  function resetStatsForLink(profileId, linkId) {
+    return sb().from('link_events').delete().eq('profile_id', profileId).eq('link_id', linkId).then(function (res) {
+      if (res.error) throw res.error;
+      delete statsCache[profileId];
+      notifyStats();
+    });
+  }
+
+  function resetStatsForSource(profileId, source) {
+    return sb().from('link_events').delete().eq('profile_id', profileId).eq('source', source).then(function (res) {
+      if (res.error) throw res.error;
+      delete statsCache[profileId];
+      notifyStats();
+    });
+  }
+
+  function resetStatsForCta(profileId, cta) {
+    return sb().from('link_events').delete().eq('profile_id', profileId).eq('cta', cta).then(function (res) {
+      if (res.error) throw res.error;
+      delete statsCache[profileId];
+      notifyStats();
+    });
+  }
+
   function bump(profileId, kind, linkId, source, cta) {
     // Pas de télémétrie possible sur une page exportée en autonome (pas de SDK/config Supabase) : no-op silencieux.
     if (!profileId || !cfg || !global.supabase) return Promise.resolve();
@@ -405,7 +431,9 @@
       return saveProfile(p);
     },
 
-    bump: bump, statsFor: statsFor, resetStats: resetStats, resetAllStats: resetAllStats, onStatsUpdate: onStatsUpdate,
+    bump: bump, statsFor: statsFor, resetStats: resetStats, resetAllStats: resetAllStats,
+    resetStatsForLink: resetStatsForLink, resetStatsForSource: resetStatsForSource, resetStatsForCta: resetStatsForCta,
+    onStatsUpdate: onStatsUpdate,
     leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, updateLeadStatus: updateLeadStatus,
     deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate,
     notesFor: notesFor, addNote: addNote, onNotesUpdate: onNotesUpdate

@@ -705,16 +705,15 @@
     for (var i = 13; i >= 0; i--) {
       var d = new Date(today); d.setDate(d.getDate() - i);
       var k = d.toISOString().slice(0, 10);
-      days.push({ k: k, v: (st.days[k] || {}).clicks || 0 });
+      var dayStats = st.days[k] || {};
+      days.push({ k: k, views: dayStats.views || 0, clicks: dayStats.clicks || 0 });
     }
-    var dmax = Math.max.apply(null, [1].concat(days.map(function (d) { return d.v; })));
+    var dmax = Math.max.apply(null, [1].concat(days.map(function (d) { return d.clicks; })));
 
     var bars = links.length
       ? links.slice().sort(function (a, b) { return (st.links[b.id] || 0) - (st.links[a.id] || 0); }).map(function (l) {
           var v = st.links[l.id] || 0;
-          return '<div class="bar-row"><div><div class="bar-label truncate">' + esc(l.title) + '</div>' +
-            '<div class="bar-track"><i class="bar-fill" style="width:' + (v / max * 100) + '%;display:block"></i></div></div>' +
-            '<div class="bar-val">' + v + '</div></div>';
+          return barRow(esc(l.title), v, max, v ? 'data-reset-link="' + esc(l.id) + '"' : '');
         }).join('')
       : '<p class="hint">Aucun lien à mesurer.</p>';
 
@@ -725,22 +724,33 @@
         '<div class="stat"><span>Taux de clic</span><b>' + ctr + '%</b></div>' +
         '<div class="stat"><span>Clics / visite</span><b>' + (st.views ? (st.clicks / st.views).toFixed(2) : '0') + '</b></div>' +
       '</div>' +
-      '<div class="panel"><h3>Clics sur 14 jours</h3><p class="hint">' + days[0].k + ' → ' + days[13].k + '</p>' +
-        '<div class="spark">' + days.map(function (d) {
-          return '<i class="' + (d.v === dmax && d.v > 0 ? 'hot' : '') + '" style="height:' + Math.max(3, d.v / dmax * 100) + '%" title="' + d.k + ' — ' + d.v + ' clic(s)"></i>';
-        }).join('') + '</div></div>' +
+      '<div class="panel"><h3>Clics sur 14 jours</h3><p class="hint">' + days[0].k + ' → ' + days[13].k + ' — passe (ou glisse) la souris sur les barres pour le détail d’un jour.</p>' +
+        '<div class="spark" id="sparkChart">' + days.map(function (d) {
+          return '<i class="' + (d.clicks === dmax && d.clicks > 0 ? 'hot' : '') + '" style="height:' + Math.max(3, d.clicks / dmax * 100) + '%" data-day="' + d.k + '" data-views="' + d.views + '" data-clicks="' + d.clicks + '"></i>';
+        }).join('') + '<div class="spark-tip" id="sparkTip" hidden></div></div></div>' +
       '<div class="panel"><h3>Répartition par lien</h3><p class="hint">Le lien le plus cliqué mérite la première place.</p>' +
         '<div class="bars">' + bars + '</div></div>' +
       '<div class="panel"><h3>Sources de trafic</h3><p class="hint">D’où viennent tes visiteurs (Instagram, Facebook…).</p>' +
         '<div class="bars">' + sourceBars(st.sources) + '</div></div>' +
       '<div class="panel"><h3>Boutons rapides</h3><p class="hint">Clics sur les boutons WhatsApp (visite, estimation).</p>' +
         '<div class="bars">' + ctaBars(st.ctas) + '</div></div>' +
-      '<div class="panel"><h3>Mesure côté serveur</h3><p class="hint">Ces chiffres sont mesurés côté serveur, tous visiteurs et tous appareils confondus.</p>' +
-        '<div class="callout warn">' + ico('trash', 19) + '<span>Remettre les compteurs de ce profil à zéro.' +
+      '<div class="panel"><h3>Mesure côté serveur</h3><p class="hint">Ces chiffres sont mesurés côté serveur, tous visiteurs et tous appareils confondus. Survole un lien, une source ou un bouton ci-dessus pour le remettre à zéro individuellement.</p>' +
+        '<div class="callout warn">' + ico('trash', 19) + '<span>Remettre tous les compteurs de ce profil à zéro.' +
         '<br><button class="btn btn-danger btn-sm" id="resetStats" style="margin-top:10px">Réinitialiser</button></span></div>' +
         (IS_ADMIN ? '<div class="callout warn" style="margin-top:12px">' + ico('trash', 19) + '<span>Réinitialiser les statistiques de <b>tous les profils clients</b>, pas seulement celui-ci. Irréversible.' +
         '<br><button class="btn btn-danger btn-sm" id="resetAllStats" style="margin-top:10px">Tout réinitialiser</button></span></div>' : '') +
       '</div>';
+  }
+
+  /** Une ligne de barre de stat, avec un bouton de remise à zéro optionnel (ajouter un attribut
+   *  data-reset-* pour l'activer) — utilisée pour les liens, les sources et les boutons rapides. */
+  function barRow(label, v, max, resetAttr) {
+    return '<div class="bar-row">' +
+      '<div><div class="bar-label truncate">' + label + '</div>' +
+      '<div class="bar-track"><i class="bar-fill" style="width:' + (v / max * 100) + '%;display:block"></i></div></div>' +
+      '<div class="bar-val">' + v + '</div>' +
+      (resetAttr ? '<button class="bar-reset" ' + resetAttr + ' title="Réinitialiser ce compteur" type="button">' + ico('trash', 14) + '</button>' : '<span></span>') +
+    '</div>';
   }
 
   function ctaBars(ctas) {
@@ -750,9 +760,7 @@
     var max = Math.max.apply(null, keys.map(function (k) { return ctas[k]; }));
     return keys.sort(function (a, b) { return ctas[b] - ctas[a]; }).map(function (k) {
       var v = ctas[k];
-      return '<div class="bar-row"><div><div class="bar-label truncate">' + esc(labels[k] || k) + '</div>' +
-        '<div class="bar-track"><i class="bar-fill" style="width:' + (v / max * 100) + '%;display:block"></i></div></div>' +
-        '<div class="bar-val">' + v + '</div></div>';
+      return barRow(esc(labels[k] || k), v, max, v ? 'data-reset-cta="' + esc(k) + '"' : '');
     }).join('');
   }
 
@@ -763,9 +771,7 @@
     var labels = { instagram: 'Instagram', facebook: 'Facebook', linkedin: 'LinkedIn', tiktok: 'TikTok', youtube: 'YouTube', google: 'Google', direct: 'Accès direct', autre: 'Autre' };
     return keys.sort(function (a, b) { return sources[b] - sources[a]; }).map(function (k) {
       var v = sources[k];
-      return '<div class="bar-row"><div><div class="bar-label truncate">' + esc(labels[k] || k) + '</div>' +
-        '<div class="bar-track"><i class="bar-fill" style="width:' + (v / max * 100) + '%;display:block"></i></div></div>' +
-        '<div class="bar-val">' + v + '</div></div>';
+      return barRow(esc(labels[k] || k), v, max, v ? 'data-reset-source="' + esc(k) + '"' : '');
     }).join('');
   }
 
@@ -784,6 +790,63 @@
           .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
       }, true);
     };
+
+    Array.prototype.forEach.call(document.querySelectorAll('.bar-reset'), function (btn) {
+      btn.onclick = function () {
+        var pid = P().id;
+        if (btn.hasAttribute('data-reset-link')) {
+          var linkId = btn.getAttribute('data-reset-link');
+          var link = (P().links || []).filter(function (l) { return l.id === linkId; })[0];
+          confirmBox('Réinitialiser ce lien', 'Les clics de « ' + (link ? link.title : 'ce lien') + ' » repartent à zéro. Les autres compteurs ne sont pas affectés.', function () {
+            window.Store.resetStatsForLink(pid, linkId).then(function () { render(); toast('Compteur du lien remis à zéro'); })
+              .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
+          }, true);
+        } else if (btn.hasAttribute('data-reset-source')) {
+          var source = btn.getAttribute('data-reset-source');
+          confirmBox('Réinitialiser cette source', 'Les vues et clics venant de cette source de trafic repartent à zéro. Les autres compteurs ne sont pas affectés.', function () {
+            window.Store.resetStatsForSource(pid, source).then(function () { render(); toast('Compteur de la source remis à zéro'); })
+              .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
+          }, true);
+        } else if (btn.hasAttribute('data-reset-cta')) {
+          var cta = btn.getAttribute('data-reset-cta');
+          confirmBox('Réinitialiser ce bouton', 'Les clics sur ce bouton repartent à zéro. Les autres compteurs ne sont pas affectés.', function () {
+            window.Store.resetStatsForCta(pid, cta).then(function () { render(); toast('Compteur du bouton remis à zéro'); })
+              .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
+          }, true);
+        }
+      };
+    });
+
+    wireSparkTooltip();
+  }
+
+  /** Infobulle qui suit la souris (ou le doigt) sur le graphique « Clics sur 14 jours »,
+   *  pour afficher vues + clics du jour survolé — le titre natif ne montrait que les clics. */
+  function wireSparkTooltip() {
+    var spark = $('#sparkChart'), tip = $('#sparkTip');
+    if (!spark || !tip) return;
+
+    var MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+    function show(bar) {
+      var day = bar.getAttribute('data-day');
+      var parts = day.split('-');
+      var label = parseInt(parts[2], 10) + ' ' + MONTHS[parseInt(parts[1], 10) - 1];
+      tip.innerHTML = '<b>' + label + '</b><span>' + bar.getAttribute('data-views') + ' vue(s)</span><span>' + bar.getAttribute('data-clicks') + ' clic(s)</span>';
+      tip.hidden = false;
+      var rect = bar.getBoundingClientRect(), prect = spark.getBoundingClientRect();
+      tip.style.left = (rect.left - prect.left + rect.width / 2) + 'px';
+    }
+    function hide() { tip.hidden = true; }
+    function fromPoint(x, y) {
+      var el = document.elementFromPoint(x, y);
+      if (el && el.hasAttribute('data-day')) show(el);
+    }
+
+    spark.addEventListener('mousemove', function (e) { fromPoint(e.clientX, e.clientY); });
+    spark.addEventListener('mouseleave', hide);
+    spark.addEventListener('touchstart', function (e) { fromPoint(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    spark.addEventListener('touchmove', function (e) { fromPoint(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
+    spark.addEventListener('touchend', hide);
   }
 
   /* ============================================================
