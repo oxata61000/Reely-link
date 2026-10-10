@@ -254,28 +254,30 @@
 
   function refreshStats(profileId) {
     statsLoading[profileId] = true;
-    return sb().from('link_events').select('kind, link_id, created_at, source, cta').eq('profile_id', profileId)
-      .then(function (res) {
-        statsLoading[profileId] = false;
-        if (res.error) { console.warn(res.error); return; }
-        var s = emptyStats();
-        (res.data || []).forEach(function (e) {
-          var day = String(e.created_at).slice(0, 10);
-          s.days[day] = s.days[day] || { views: 0, clicks: 0 };
-          if (e.kind === 'view') {
-            s.views++; s.days[day].views++;
-            var src = e.source || 'autre';
-            s.sources[src] = (s.sources[src] || 0) + 1;
-          }
-          else {
-            s.clicks++; s.days[day].clicks++;
-            if (e.link_id) s.links[e.link_id] = (s.links[e.link_id] || 0) + 1;
-            if (e.cta) s.ctas[e.cta] = (s.ctas[e.cta] || 0) + 1;
-          }
-        });
-        statsCache[profileId] = s;
-        notifyStats();
+    // Les totaux (vues/clics globaux, par lien, par source, par bouton) sont calculés côté
+    // serveur via get_profile_stats — inutile de rapatrier chaque ligne pour les additionner
+    // en JS. Seul le détail jour par jour est encore fetché ligne à ligne, et borné aux 16
+    // derniers jours : c'est la seule fenêtre jamais affichée (graphique « 14 jours »).
+    var cutoff = new Date(); cutoff.setUTCDate(cutoff.getUTCDate() - 16); cutoff.setUTCHours(0, 0, 0, 0);
+    return Promise.all([
+      sb().rpc('get_profile_stats', { p_profile_id: profileId }),
+      sb().from('link_events').select('kind, created_at').eq('profile_id', profileId).gte('created_at', cutoff.toISOString())
+    ]).then(function (results) {
+      statsLoading[profileId] = false;
+      var aggRes = results[0], daysRes = results[1];
+      if (aggRes.error || daysRes.error) { console.warn(aggRes.error || daysRes.error); return; }
+      var agg = aggRes.data || {};
+      var s = emptyStats();
+      s.views = agg.views || 0; s.clicks = agg.clicks || 0;
+      s.links = agg.links || {}; s.sources = agg.sources || {}; s.ctas = agg.ctas || {};
+      (daysRes.data || []).forEach(function (e) {
+        var day = String(e.created_at).slice(0, 10);
+        s.days[day] = s.days[day] || { views: 0, clicks: 0 };
+        if (e.kind === 'view') s.days[day].views++; else s.days[day].clicks++;
       });
+      statsCache[profileId] = s;
+      notifyStats();
+    });
   }
 
   function resetStats(profileId) {
@@ -424,6 +426,20 @@
     });
   }
 
+  /* ---------- Suivi d'erreurs ---------- */
+  // Best-effort, jamais bloquant : sur une page exportée en autonome (pas de SDK/config
+  // Supabase) ou en cas d'échec réseau, on avale l'erreur plutôt que d'en lever une nouvelle.
+  function addClientError(context, message, stack, url, profileSlug) {
+    if (!cfg || !global.supabase) return Promise.resolve();
+    try {
+      return sb().from('client_errors').insert({
+        context: context, message: String(message || '').slice(0, 2000),
+        stack: stack ? String(stack).slice(0, 4000) : null,
+        url: url || null, profile_slug: profileSlug || null
+      }).then(function () {}).catch(function () {});
+    } catch (e) { return Promise.resolve(); }
+  }
+
   global.Store = {
     PRESETS: PRESETS,
     uid: uid, blankProfile: blankProfile, defaultTheme: defaultTheme,
@@ -452,7 +468,8 @@
     onStatsUpdate: onStatsUpdate,
     leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, updateLeadStatus: updateLeadStatus,
     deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate,
-    notesFor: notesFor, addNote: addNote, onNotesUpdate: onNotesUpdate
+    notesFor: notesFor, addNote: addNote, onNotesUpdate: onNotesUpdate,
+    addClientError: addClientError
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = global.Store;
 })(typeof window !== 'undefined' ? window : this);

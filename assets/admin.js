@@ -10,6 +10,17 @@
 
   function P() { return (D && D.active) ? D.profiles[D.active] : null; }
 
+  /* ---------- Suivi d'erreurs minimal (best-effort, jamais bloquant) ---------- */
+  function logClientError(err, where) {
+    try {
+      var message = (err && err.message) || String((err && err.reason) || err || where);
+      var prof = P();
+      window.Store.addClientError('admin', message, err && err.stack, location.href, prof && prof.slug).catch(function () {});
+    } catch (e) { /* on ne bloque jamais l'admin pour un souci de journalisation */ }
+  }
+  window.addEventListener('error', function (e) { logClientError(e.error || e.message, 'window.onerror'); });
+  window.addEventListener('unhandledrejection', function (e) { logClientError(e.reason, 'unhandledrejection'); });
+
   var saveTimer = null;
   function persist() {
     postPreview();
@@ -34,12 +45,44 @@
   function ico(n, s) { return ICONS.svg(n, s || 20); }
   function hostOf(u) { try { return new URL(/^https?:/.test(u) ? u : 'https://' + u).hostname.replace(/^www\./, ''); } catch (e) { return u || ''; } }
 
+  /** Redimensionne et recompresse une image côté client avant l'envoi — une photo de téléphone
+   *  à 4-5 Mo partirait sinon telle quelle, ralentissant la page publique pour chaque visiteur
+   *  qui la charge. Les GIF (potentiellement animés) et les images déjà petites sont laissés
+   *  tels quels ; en cas de pépin (format illisible, navigateur sans canvas.toBlob…), on
+   *  renvoie simplement le fichier d'origine plutôt que de bloquer l'envoi. */
+  function compressImage(file) {
+    if (file.type === 'image/gif') return Promise.resolve(file);
+    return new Promise(function (resolve) {
+      var img = new Image();
+      var url = URL.createObjectURL(file);
+      img.onload = function () {
+        URL.revokeObjectURL(url);
+        var MAX = 1600;
+        var w = img.naturalWidth, h = img.naturalHeight;
+        if (!w || !h || (w <= MAX && h <= MAX) || typeof HTMLCanvasElement === 'undefined') { resolve(file); return; }
+        var scale = MAX / Math.max(w, h);
+        var canvas = document.createElement('canvas');
+        canvas.width = Math.round(w * scale); canvas.height = Math.round(h * scale);
+        if (!canvas.toBlob) { resolve(file); return; }
+        canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+        var outType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        canvas.toBlob(function (blob) {
+          resolve(blob && blob.size < file.size ? new File([blob], file.name, { type: outType }) : file);
+        }, outType, 0.82);
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(file); };
+      img.src = url;
+    });
+  }
+
   /** Valide puis téléverse une image dans le stockage Supabase, renvoie l'URL publique. */
   function uploadImage(file, prefix) {
     if (!file.type || file.type.indexOf('image/') !== 0) return Promise.reject(new Error('Choisissez un fichier image.'));
     if (file.size > 5 * 1024 * 1024) return Promise.reject(new Error('Image trop lourde (5 Mo max).'));
     var prof = P(); if (!prof || !prof.id) return Promise.reject(new Error('Enregistrez d’abord le profil.'));
-    return window.Store.uploadFile(prof.id, file, prefix);
+    return compressImage(file).then(function (toUpload) {
+      return window.Store.uploadFile(prof.id, toUpload, prefix);
+    });
   }
 
   /** Valide puis téléverse un PDF dans le stockage Supabase, renvoie l'URL publique. */

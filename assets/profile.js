@@ -69,9 +69,37 @@
 
   var requestedSlug = qs.get('u') || slugFromHost() || slugFromPath();
   function resolve() {
-    if (window.REELY_PROFILE) return Promise.resolve(window.REELY_PROFILE);
-    if (!requestedSlug) return Promise.resolve(null);
-    return window.Store.getPublicProfile(requestedSlug);
+    // Toujours renvoyer une Promise, même si getPublicProfile (ou sb() en dessous) lève une
+    // erreur de façon synchrone (ex. SDK Supabase pas chargé) — sinon resolve().then(...).catch(...)
+    // plus bas ne rattraperait jamais rien et la page resterait blanche.
+    try {
+      if (window.REELY_PROFILE) return Promise.resolve(window.REELY_PROFILE);
+      if (!requestedSlug) return Promise.resolve(null);
+      return Promise.resolve(window.Store.getPublicProfile(requestedSlug));
+    } catch (err) {
+      return Promise.reject(err);
+    }
+  }
+
+  /* ---------- Suivi d'erreurs minimal (best-effort, jamais bloquant) ---------- */
+  function logClientError(err, where) {
+    try {
+      var message = (err && err.message) || String(err && err.reason || err || where);
+      window.Store.addClientError('public', message, err && err.stack, location.href, requestedSlug).catch(function () {});
+    } catch (e) { /* on ne bloque jamais l'affichage pour un souci de journalisation */ }
+  }
+  window.addEventListener('error', function (e) { logClientError(e.error || e.message, 'window.onerror'); });
+  window.addEventListener('unhandledrejection', function (e) { logClientError(e.reason, 'unhandledrejection'); });
+
+  /** Affiché si le profil n'a pas pu être chargé (réseau coupé, Supabase indisponible…),
+   *  à la place d'un écran blanc permanent. */
+  function renderLoadError() {
+    root.innerHTML = '<div style="min-height:70vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;padding:32px;text-align:center;font-family:system-ui,-apple-system,sans-serif">' +
+      '<p style="font-size:15px;color:#555;max-width:320px">Cette page est momentanément indisponible. Vérifiez votre connexion et réessayez.</p>' +
+      '<button type="button" id="retryLoad" style="padding:11px 22px;border-radius:999px;border:none;background:#4648d4;color:#fff;font-size:14px;font-weight:600;cursor:pointer">Réessayer</button>' +
+    '</div>';
+    var btn = document.getElementById('retryLoad');
+    if (btn) btn.onclick = function () { location.reload(); };
   }
 
   /* ---------- Utilitaires ---------- */
@@ -403,10 +431,13 @@
     var form = document.getElementById('lgForm');
     form.addEventListener('submit', function (e) {
       e.preventDefault();
+      var submitBtn = form.querySelector('button[type="submit"]');
+      if (submitBtn && submitBtn.disabled) return; // garde anti double-clic
       var email = document.getElementById('lg-email').value.trim();
       if (!email) return;
       var consent = document.getElementById('lg-consent').checked;
       var status = document.getElementById('lg-status');
+      if (submitBtn) submitBtn.disabled = true;
       status.textContent = 'Un instant…';
       window.Store.addLead(P.id, {
         email: email, marketingConsent: consent,
@@ -533,6 +564,8 @@
     if (!P || e.target.id !== 'contactForm') return;
     e.preventDefault();
     var form = e.target;
+    var submitBtn = form.querySelector('button[type="submit"]');
+    if (submitBtn && submitBtn.disabled) return; // garde anti double-clic
     var status = document.getElementById('cf-status');
     var fd = new FormData(form);
     var ff = (P.contact && P.contact.formFields) || {};
@@ -552,12 +585,15 @@
       transactionType: fd.get('transactionType') || '', message: fd.get('message') || '',
       linkId: lastClickedLinkId, source: PAGE_SOURCE
     };
+    if (submitBtn) submitBtn.disabled = true;
     status.textContent = 'Envoi en cours…'; status.style.color = '';
     window.Store.addLead(P.id, lead).then(function () {
       form.reset(); status.textContent = 'Message envoyé, merci !'; status.style.color = 'var(--success)';
+      if (submitBtn) submitBtn.disabled = false;
       var endpoint = (P.contact && P.contact.endpoint) || '';
       if (endpoint) fetch(endpoint, { method: 'POST', body: fd, headers: { Accept: 'application/json' } }).catch(function () {});
     }).catch(function (err) {
+      if (submitBtn) submitBtn.disabled = false;
       if (err && /trop de messages/i.test(err.message || '')) {
         status.textContent = err.message; status.style.color = 'var(--error)'; return;
       }
@@ -576,5 +612,8 @@
     });
   }
 
-  resolve().then(function (profile) { P = profile; mount(); });
+  resolve().then(function (profile) { P = profile; mount(); }).catch(function (err) {
+    logClientError(err, 'resolve');
+    renderLoadError();
+  });
 })();

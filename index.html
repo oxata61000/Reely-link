@@ -11,6 +11,22 @@
 <link rel="stylesheet" href="/assets/theme.css">
 <link rel="stylesheet" href="/assets/profile.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🔗</text></svg>">
+<style>
+  /* État de chargement minimal, indépendant de profile.css (peut ne pas encore être appliqué) :
+     affiché tant que #app est vide, disparaît automatiquement dès que profile.js y insère le
+     profil (ou un message d'erreur) — évite un écran blanc le temps de la résolution réseau. */
+  #app:empty::before {
+    content: '';
+    display: block;
+    width: 34px; height: 34px;
+    margin: 130px auto 0;
+    border-radius: 50%;
+    border: 3px solid #e2e4f5;
+    border-top-color: #4648d4;
+    animation: reely-spin .8s linear infinite;
+  }
+  @keyframes reely-spin { to { transform: rotate(360deg); } }
+</style>
 </head>
 <body class="profile">
   <a href="#app" class="sr-only">Aller au contenu</a>
