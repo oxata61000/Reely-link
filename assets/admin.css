@@ -253,6 +253,14 @@ input[type="color"] { width: 46px; height: 40px; padding: 2px; border: 1px solid
 .spark i.hot { background: var(--primary); }
 .spark-tip { position: absolute; top: 0; left: 0; transform: translate(-50%, calc(-100% - 10px)); display: flex; flex-direction: column; gap: 2px; padding: 7px 11px; border-radius: var(--r); background: var(--inverse-surface); color: var(--inverse-on-surface); font-size: 12px; line-height: 1.35; white-space: nowrap; pointer-events: none; box-shadow: var(--e2); z-index: 5; }
 .spark-tip b { font-size: 11px; font-weight: 700; opacity: .8; }
+.spark-tip-reset {
+  display: flex; align-items: center; gap: 5px; margin-top: 3px; padding-top: 5px;
+  border: none; border-top: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+  background: none; color: inherit; font: inherit; font-size: 11px; font-weight: 600;
+  cursor: pointer; pointer-events: auto; opacity: .85; transition: opacity .15s var(--ease);
+}
+.spark-tip-reset:hover { opacity: 1; }
+.spark-tip-reset svg { width: 12px; height: 12px; flex: none; }
 .spark-tip[hidden] { display: none; }
 
 .callout { display: flex; gap: 12px; padding: 14px 16px; border-radius: var(--r-md); background: var(--surface-low); font-size: 13.5px; color: var(--on-surface-variant); }

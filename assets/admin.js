@@ -724,7 +724,7 @@
         '<div class="stat"><span>Taux de clic</span><b>' + ctr + '%</b></div>' +
         '<div class="stat"><span>Clics / visite</span><b>' + (st.views ? (st.clicks / st.views).toFixed(2) : '0') + '</b></div>' +
       '</div>' +
-      '<div class="panel"><h3>Clics sur 14 jours</h3><p class="hint">' + days[0].k + ' → ' + days[13].k + ' — passe (ou glisse) la souris sur les barres pour le détail d’un jour.</p>' +
+      '<div class="panel"><h3>Clics sur 14 jours</h3><p class="hint">' + days[0].k + ' → ' + days[13].k + ' — passe (ou glisse) la souris sur les barres pour le détail d’un jour, avec la possibilité de le remettre à zéro (ex. tes propres clics de test).</p>' +
         '<div class="spark" id="sparkChart">' + days.map(function (d) {
           return '<i class="' + (d.clicks === dmax && d.clicks > 0 ? 'hot' : '') + '" style="height:' + Math.max(3, d.clicks / dmax * 100) + '%" data-day="' + d.k + '" data-views="' + d.views + '" data-clicks="' + d.clicks + '"></i>';
         }).join('') + '<div class="spark-tip" id="sparkTip" hidden></div></div></div>' +
@@ -821,17 +821,24 @@
   }
 
   /** Infobulle qui suit la souris (ou le doigt) sur le graphique « Clics sur 14 jours »,
-   *  pour afficher vues + clics du jour survolé — le titre natif ne montrait que les clics. */
+   *  pour afficher vues + clics du jour survolé (le titre natif ne montrait que les clics),
+   *  avec un bouton pour remettre à zéro uniquement ce jour-là (ex. activité de test du jour même). */
+  var MONTHS_FR = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
+  function dayLabel(day) {
+    var parts = day.split('-');
+    return parseInt(parts[2], 10) + ' ' + MONTHS_FR[parseInt(parts[1], 10) - 1];
+  }
+
   function wireSparkTooltip() {
     var spark = $('#sparkChart'), tip = $('#sparkTip');
     if (!spark || !tip) return;
 
-    var MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
     function show(bar) {
       var day = bar.getAttribute('data-day');
-      var parts = day.split('-');
-      var label = parseInt(parts[2], 10) + ' ' + MONTHS[parseInt(parts[1], 10) - 1];
-      tip.innerHTML = '<b>' + label + '</b><span>' + bar.getAttribute('data-views') + ' vue(s)</span><span>' + bar.getAttribute('data-clicks') + ' clic(s)</span>';
+      var views = bar.getAttribute('data-views'), clicks = bar.getAttribute('data-clicks');
+      var hasData = views !== '0' || clicks !== '0';
+      tip.innerHTML = '<b>' + dayLabel(day) + '</b><span>' + views + ' vue(s)</span><span>' + clicks + ' clic(s)</span>' +
+        (hasData ? '<button class="spark-tip-reset" data-day-reset="' + day + '" type="button">' + ico('trash', 12) + 'Réinitialiser ce jour</button>' : '');
       tip.hidden = false;
       var rect = bar.getBoundingClientRect(), prect = spark.getBoundingClientRect();
       tip.style.left = (rect.left - prect.left + rect.width / 2) + 'px';
@@ -847,6 +854,16 @@
     spark.addEventListener('touchstart', function (e) { fromPoint(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
     spark.addEventListener('touchmove', function (e) { fromPoint(e.touches[0].clientX, e.touches[0].clientY); }, { passive: true });
     spark.addEventListener('touchend', hide);
+
+    tip.onclick = function (e) {
+      var btn = e.target.closest('[data-day-reset]');
+      if (!btn) return;
+      var day = btn.getAttribute('data-day-reset'), pid = P().id;
+      confirmBox('Réinitialiser ce jour', 'Les vues et clics du ' + dayLabel(day) + ' repartent à zéro. Les autres jours de l’historique ne sont pas affectés.', function () {
+        window.Store.resetStatsForDay(pid, day).then(function () { render(); toast('Compteurs du jour remis à zéro'); })
+          .catch(function (err) { toast('Réinitialisation impossible : ' + (err && err.message || ''), true); });
+      }, true);
+    };
   }
 
   /* ============================================================

@@ -320,6 +320,21 @@
     });
   }
 
+  /** Remise à zéro des vues et clics d'une seule journée (ex. jour de test), sans toucher
+   *  au reste de l'historique. day au format "AAAA-MM-JJ" (même fuseau — UTC — que les
+   *  clés utilisées par statsFor() / refreshStats() ci-dessus). */
+  function resetStatsForDay(profileId, day) {
+    var start = day + 'T00:00:00.000Z';
+    var endDate = new Date(start);
+    endDate.setUTCDate(endDate.getUTCDate() + 1);
+    return sb().from('link_events').delete().eq('profile_id', profileId)
+      .gte('created_at', start).lt('created_at', endDate.toISOString()).then(function (res) {
+        if (res.error) throw res.error;
+        delete statsCache[profileId];
+        notifyStats();
+      });
+  }
+
   function bump(profileId, kind, linkId, source, cta) {
     // Pas de télémétrie possible sur une page exportée en autonome (pas de SDK/config Supabase) : no-op silencieux.
     if (!profileId || !cfg || !global.supabase) return Promise.resolve();
@@ -433,6 +448,7 @@
 
     bump: bump, statsFor: statsFor, resetStats: resetStats, resetAllStats: resetAllStats,
     resetStatsForLink: resetStatsForLink, resetStatsForSource: resetStatsForSource, resetStatsForCta: resetStatsForCta,
+    resetStatsForDay: resetStatsForDay,
     onStatsUpdate: onStatsUpdate,
     leadsFor: leadsFor, addLead: addLead, markLeadRead: markLeadRead, updateLeadStatus: updateLeadStatus,
     deleteLead: deleteLead, onLeadsUpdate: onLeadsUpdate,
